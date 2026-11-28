@@ -1,6 +1,6 @@
 # Adversarial review by another provider
 
-Read when the user asks for a review by another provider's agent. Read it only when the user explicitly asks for that review of the candidate; never offer, suggest or prepare it otherwise. The user's pick of an agent authorizes the spend of another provider's quota for this work item and no other. It runs in addition to the code review the user chose, never in its place, under the delivery mode in force.
+Read when the user asks for a review by another provider's agent. Read it only when the user explicitly asks for that review of the candidate. The user's pick of an agent authorizes the spend of another provider's quota for this work item and no other. It runs in addition to the code review the user chose, never in its place, under the delivery mode in force.
 
 - At most one run on the candidate, and one more after the round of fixes that followed it. The answer is never reused for another work item.
 - In unattended work, run it only when an amount was authorized beforehand for this spend, and stay within it.

@@ -17,10 +17,22 @@ What always runs for each kind of change; each check keeps its own rule, linked 
 
 ## What the report carries
 
-- **Try it:** when the user can see or operate the change as its users do, a block headed in the session language, such as **Try it**, written as the steps those users take rather than the commands that run the app:
-  - **Start:** the URL as a link while the candidate is served; otherwise one line with the start command, plus the seed command when the walk needs seeded data, as the project's `README.md` or a `HIVE.local.md` documents them, else as the session ran them, and the URL served. Environment files, variables and flags stay out unless those documents have the reader type them. A native app names its device or emulator and build. For a CLI, the start is the command its users run, and its steps give the output to expect.
-  - **Account:** its account index row (never a secret).
-  - **Steps:** one block per flow, headed by the ticket, if any, and a short description, such as `ABC-123 - <description>`, with bullet steps from a named starting point: preconditions such as the role and signed-in state in parentheses on the first step, navigation with `>` between screens by the labels the interface shows, in its language, such as `Claims > New`, the action, and what the user should see; consecutive actions on one screen share a bullet. When several tickets share one flow, cite the ticket in the step it concerns; separate flows get separate blocks.
+- **Try it:** when the user can see or operate the change as its users do, a block headed in the session language, such as **Try it**, written as the steps those users take rather than the commands that run the app, in this form:
+
+  ```markdown
+  **<Try it, in the session language>**
+
+  - **Start:** <the URL as a link while the candidate is served; otherwise one line with the start command, plus the seed command when the walk needs seeded data>
+  - **Account:** <its account index row, never a secret>
+  - **Steps:**
+
+  **<ticket, if any> - <description>**
+  - (<role>, <signed-in state>) <Screen> > <Screen>, <action>, <what the user should see>
+  - <next action>, <what the user should see>
+  ```
+
+  - **Start:** the commands are those the project's `README.md` or a `HIVE.local.md` documents, else those the session ran, plus the URL served. Environment files, variables and flags stay out unless those documents have the reader type them. A native app names its device or emulator and build. For a CLI, the start is the command its users run, and its steps give the output to expect.
+  - **Steps:** one block per flow, headed by the ticket, if any, and a short description, with the steps from a named starting point. The preconditions go in parentheses on the first step, and navigation uses the labels the interface shows, in its language. Consecutive actions on one screen share a bullet. When several tickets share one flow, cite the ticket in the step it concerns; separate flows get separate blocks.
 
   A command that reruns a check, such as a test run, is not this block, since the report already names the checks that passed; a change with nothing else to try has no block. It asks nothing and appears in every delivery mode, where [close report](../close/close-report.md) places it in the final report, and in a request to validate such a change.
 - A check of this floor that did not run is named with its reason among the report's omitted checks.

@@ -92,17 +92,6 @@ keychain, and nothing in the environment prevents it. Linear, Jira, Notion,
   neither a draft nor questions. It is also `not_observed` with no assistant
   text at all. The final text is what follows the last tool work; a denied
   question card does not end it.
-- `ticket_at_most_three_questions` counts the questions inside every native
-  question call (a repeated identical call once) and the distinct decision lines
-  (`D<n>`, also under a list, quote or heading marker, followed by an em dash,
-  en dash, colon or spaced hyphen) of the final assistant text, on every host,
-  and fails above three. A call made before the last tool work is an earlier
-  round and adds all its questions. After it, a decision written in the text
-  and asked again in its card is one question: card questions that name a
-  decision ID count by ID, and unnamed ones are taken to restate the text
-  decisions, so a card of unnamed questions on other topics is undercounted.
-  `not_observed` when none was asked. Questions written in the text without a
-  `D<n>` line are not counted.
 
 The last two are text heuristics: report their results as exploratory. Run it
 like any other case, for example:

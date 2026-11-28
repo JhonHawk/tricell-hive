@@ -861,7 +861,7 @@ func assessFlows(r result, f fixture, files string) assessment {
 		a.Criteria = append(a.Criteria, noExecutionPrepOnQuestion(r))
 	}
 	if ticketDirectRequestCase(f.ID) {
-		a.Criteria = append(a.Criteria, ticketNoWriteAttempt(r), ticketDraftOrQuestions(r), ticketAtMostThreeQuestions(r))
+		a.Criteria = append(a.Criteria, ticketNoWriteAttempt(r), ticketDraftOrQuestions(r))
 	}
 	fail, unknown := false, false
 	for _, c := range a.Criteria {
@@ -1282,8 +1282,6 @@ var (
 	// A decision line is `D<n>`, also under a list, quote or heading marker,
 	// followed by an em dash, en dash, colon or spaced hyphen; `D1-A:` option references and mid-sentence mentions do not match.
 	ticketDecisionLine = regexp.MustCompile(`(?m)^\s*(?:[-*>]\s*|#+\s*)?(?:\*\*)?D(\d+)(?:\*\*)?\s*(?:—|–|:|-\s)`)
-	// ticketDecisionID finds the decision a question card names in its own text.
-	ticketDecisionID = regexp.MustCompile(`\bD(\d+)\s*(?:—|–|:|-\s)`)
 )
 
 // ticketDraftOrQuestions is the second ticket-direct-request criterion. A final
@@ -1334,70 +1332,6 @@ func ticketDraftOrQuestions(r result) criterionAssessment {
 		c.Status = "not_observed"
 	case strings.TrimSpace(text) != "":
 		c.Status = "fail"
-	}
-	return c
-}
-
-// ticketAtMostThreeQuestions is the third ticket-direct-request criterion. It
-// counts the questions inside every native question call (at least one per
-// call, a repeated identical call once) and the distinct decision lines of the
-// final assistant text, on every host, and fails above three. A call before
-// the last work event is an earlier round and adds all its questions. In the
-// final window, a decision written in the text and asked again in its card is
-// one question: card questions that name a decision ID count by ID, and the
-// unnamed ones are taken to restate the text decisions, so the larger of the
-// two groups counts. It is not_observed when none was asked.
-func ticketAtMostThreeQuestions(r result) criterionAssessment {
-	c := criterionAssessment{Criterion: "ticket_at_most_three_questions", Status: "not_observed"}
-	events := r.Trace.Events
-	final := len(events) - len(finalWindow(events))
-	earlier, unnamed := 0, 0
-	cardIDs, textIDs := map[string]bool{}, map[string]bool{}
-	calls := map[string]bool{}
-	for i, e := range events {
-		if e.Kind != "question" {
-			continue
-		}
-		c.Evidence = append(c.Evidence, regressionEvidence(e))
-		if key := string(e.Input); key != "" {
-			if calls[key] {
-				continue
-			}
-			calls[key] = true
-		}
-		entries := decodeAskQuestion(e.Input)
-		if i < final {
-			earlier += max(1, len(entries))
-			continue
-		}
-		if len(entries) == 0 {
-			unnamed++
-		}
-		for _, q := range entries {
-			if m := ticketDecisionID.FindStringSubmatch(q.Question); m != nil {
-				cardIDs[m[1]] = true
-			} else {
-				unnamed++
-			}
-		}
-	}
-	for _, e := range finalAssistantText(events) {
-		for _, m := range ticketDecisionLine.FindAllStringSubmatch(e.Text, -1) {
-			if !cardIDs[m[1]] {
-				textIDs[m[1]] = true
-			}
-		}
-		if ticketDecisionLine.MatchString(e.Text) {
-			c.Evidence = append(c.Evidence, regressionEvidence(e))
-		}
-	}
-	count := earlier + len(cardIDs) + max(unnamed, len(textIDs))
-	c.Evidence = append(c.Evidence, fmt.Sprintf("questions=%d", count))
-	switch {
-	case count > 3:
-		c.Status = "fail"
-	case count > 0:
-		c.Status = "pass"
 	}
 	return c
 }

@@ -29,7 +29,14 @@ Consequences:
 
 - A library default that is below a default of these criteria holds. A 36 px library button is not a deviation from the 44 px guide value.
 - The accessibility floors in criteria sit outside levels 2 to 5: a recorded decision, the customization layer or a library default never excuses a floor failure in what the change builds or customizes, meaning its own elements and compositions and each value it sets or overrides. Using a library component as the library publishes it is not building it.
-- A library default is a value inside a library component used as the library publishes it: a token value, a variant or a style that neither the project's customization layer ([design record](design-record.md#detection) step 3) nor the change sets or overrides. Show that from those files before recording it; a value you cannot show unchanged counts as customized. A library token the change applies to its own element, or pairs with a surface the library does not pair it with, is something the change builds. Without a declared accessibility requirement (level 1), a check that measures a library default itself, such as its contrast, color, size, spacing or radius, records `not applicable: library default` with the measured value, also when the value misses a WCAG threshold, when an automated audit flags it, and when the change is the first to use that component. That result is neither a finding nor a defect already there: it takes no priority and no suggested fix, it is not asked to the user, and it appears only among the checks the output contract lists. Layout integrity, states, keyboard order, a missing focus indicator and accessible names stay applicable.
+- A library default is a value inside a library component used as the library publishes it: a token value, a variant or a style that neither the project's customization layer ([design record](design-record.md#detection) step 3) nor the change sets or overrides.
+  Show that from those files before recording it; a value you cannot show unchanged counts as customized.
+- A library token the change applies to its own element, or pairs with a surface the library does not pair it with, is something the change builds.
+- Without a declared accessibility requirement (level 1), a check that measures a library default itself, such as its contrast, color, size, spacing or radius, records `not applicable: library default` with the measured value, including when:
+  - the value misses a WCAG threshold;
+  - an automated audit flags it;
+  - the change is the first to use that component.
+- That result is neither a finding nor a defect already there: it takes no priority and no suggested fix, it is not asked to the user, and it appears only among the checks the output contract lists. Layout integrity, states, keyboard order, a missing focus indicator and accessible names stay applicable.
 - A component the project customized earlier, which the change reuses without modifying it and which fails a floor, is not a defect of the change: list it among the defects already there, with its reason.
 - With a declared accessibility requirement (level 1), a library default or an earlier customization that fails it is listed among the defects already there, also when the change is the first to use it, with its priority and marked as failing that requirement, so it reaches the user as a finding; the change's verdict still covers only what it introduced.
 - Any change, whether a fix or a design choice, that alters a token, the size, radius, spacing or motion of a library component, or edits an installed component, returns to the user as a pending decision unless the brief or a recorded decision already names it. Do not apply it on your own.
@@ -43,4 +50,4 @@ Return:
 - the checks you actually ran, and the ones you could not run, with the reason;
 - the defects already there, and each pending decision.
 
-Never state a library API or token you did not read in that version's documentation, as [design record](design-record.md#detection) step 6 sets.
+Never state a library API or token you did not read in that version's documentation, as [design record](design-record.md#detection) step 4 sets.

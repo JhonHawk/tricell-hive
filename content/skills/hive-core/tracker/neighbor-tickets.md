@@ -12,7 +12,11 @@ Read before assessing, planning or building a ticket whose parent, project, mile
 
 Classify each ticket opened. Report each class among the dependencies of the assessment ([hive-mode](../../hive-mode/SKILL.md#assess-a-chosen-ticket)) or in the plan's verified context, next to the relations the ticket already declares:
 
-- **A later ticket owns a capability this one needs.** Ask it as a decision, as [questions](../messages/questions.md) sets, with this recommendation: star pulling the work into this ticket when a criterion of this ticket cannot be observed without the capability and deferring it would make this work build a substitute the later ticket replaces, or change again the files this work changes; star deferring otherwise. An external effect the pulled work adds does not change the star, since the [effects round](../plan/external-effects.md) asks it apart. Each option's description names the tickets it would comment on or edit.
+- **A later ticket owns a capability this one needs.** Ask it as a decision, as [questions](../messages/questions.md) sets, with this recommendation:
+  - star pulling the work into this ticket when a criterion of this ticket cannot be observed without the capability and deferring it would make this work build a substitute the later ticket replaces, or change again the files this work changes;
+  - star deferring otherwise.
+
+  An external effect the pulled work adds does not change the star, since the [effects round](../plan/external-effects.md) asks it apart. Each option's description names the tickets it would comment on or edit.
 - **A neighbor in progress touches the same resource**, such as the same migration number, sequence or module. Name the ticket and the resource in the report, do not take that ticket's work, and pick a number or name that does not collide with the one it holds.
 - **No ticket owns a capability this one needs.** Say so. It joins this ticket when it passes the test of the first class, asked as that decision; otherwise propose its ticket as [scope changes](../plan/scope-changes.md) sets.
 

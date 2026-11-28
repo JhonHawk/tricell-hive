@@ -12,10 +12,25 @@ When a correction of the user sets a convention for screens beyond this one, suc
 
 ## Record the approval
 
-In the same turn the user answers a rule, write its line as `approved <date>: <answer>` and update its card's row. In the same turn the user answers the set's approval decision, replace each approved screen's status line with `approved <date>`; leave only the screens named for correction or kept pending for a redraw by the choice above unapproved, preserve the others' approval, add the user's answer about each convention, keep the answer about the file and the library as «Record it» sets, a yes as `pending` with nothing written in the repository, and remove the alternatives not chosen, with the components, variables and `candidate:` lines only they used, from the file and from the record; the approved examples of the other screens stay. Then write the work's rules to its ticket, as [business rules ticket](../../hive-core/business/business-ticket.md) sets. Write the approved example in the report. A plan with a plan file copies the record into the `UI` part of its `## Design` and its `rule:` lines into its `## Business rules`; work without one copies both into its checkpoint file, so a stage in another checkout finds them.
+In the same turn the user answers a rule, write its line as `approved <date>: <answer>` and update its card's row. In the same turn the user answers the set's approval decision:
+
+- replace each approved screen's status line with `approved <date>`;
+- leave unapproved only the screens named for correction or kept pending for a redraw by the choice above, and preserve the others' approval;
+- add the user's answer about each convention;
+- keep the answer about the file and the library as «Record it» sets, a yes as `pending` with nothing written in the repository;
+- remove the alternatives not chosen, with the components, variables and `candidate:` lines only they used, from the file and from the record; the approved examples of the other screens stay.
+
+Then write the work's rules to its ticket, as [business rules ticket](../../hive-core/business/business-ticket.md) sets. Write the approved example in the report. A plan with a plan file copies the record into the `UI` part of its `## Design` and its `rule:` lines into its `## Business rules`; work without one copies both into its checkpoint file, so a stage in another checkout finds them.
 
 ## Close the stage
 
 When the record holds a `scope` rule, ask the approval of the other screens as the choice above sets, then end with the next-step block toward [hive-mode](../../hive-mode/SKILL.md) naming those rules instead of the block toward the plan. When the stage runs again for this work, step 5 resumes from its record. A request whose deliverable is the design ends as [A request for the design itself](special-cases.md#a-request-for-the-design-itself) sets, not here.
 
-Otherwise, once every screen is approved, end with the next-step block toward [flow-plan](../../flow-plan/SKILL.md), as [the next-step block](../../hive-core/messages/report-endings.md#the-next-step-block) sets, naming the approved example and its record. Recommend `flow-build` instead only when all of these hold: the block that offered this stage listed `flow-build` as a reply, the approved examples add no region the request did not name, the record holds no yes to recording a convention and no `pending` file or library, and no rule in it is still `proposed`. The plan takes the example as the screen's reference, as [UI decisions](../../hive-core/ui/ui-plan.md) sets, and adds the task that writes each convention, and a `pending` file or library, when the record holds that instruction; a build without a plan keeps the record in its checkpoint file, as [checkpoint](../../hive-core/plan/checkpoint.md) sets.
+Otherwise, once every screen is approved, end with the next-step block toward [flow-plan](../../flow-plan/SKILL.md), as [the next-step block](../../hive-core/messages/report-endings.md#the-next-step-block) sets, naming the approved example and its record. Recommend `flow-build` instead only when all of these hold:
+
+- the block that offered this stage listed `flow-build` as a reply;
+- the approved examples add no region the request did not name;
+- the record holds no yes to recording a convention and no `pending` file or library;
+- no rule in it is still `proposed`.
+
+The plan takes the example as the screen's reference, as [UI decisions](../../hive-core/ui/ui-plan.md) sets, and adds the task that writes each convention, and a `pending` file or library, when the record holds that instruction; a build without a plan keeps the record in its checkpoint file, as [checkpoint](../../hive-core/plan/checkpoint.md) sets.

@@ -1,4 +1,4 @@
-# Diagram Grammar — inline SVG diagrams inside reports
+# Diagram grammar: inline SVG diagrams inside reports
 
 > Adapted from [cathrynlavery/diagram-design](https://github.com/cathrynlavery/diagram-design)
 > (v2.3.2, MIT) and re-skinned onto the create-report baseline tokens (`baseline.html`). It covers
@@ -9,16 +9,16 @@ Diagrams follow the report's own design system and are self-contained: inline SV
 ## 1. When to draw
 
 - Draw only when the reader learns more from the visual than from a paragraph or table; a one-shape "diagram" is a sentence.
-- Deletion first: two nodes that always travel together are one node, and a connection obvious from the layout is removed. The diagram is done when nothing can be removed.
+- Deletion first: two nodes that always travel together are one node, and a connection that adjacency or alignment already shows is removed. The diagram is done when nothing can be removed.
 - Target density 4/10; above 9 nodes, split into an overview and a detail diagram.
 
 ## 2. Type selection
 
 Architecture (zones by tier or trust boundary, one primary flow direction), flowchart (diamonds for decisions, labeled YES/NO exits), sequence, state machine (transition labels carry event and guard), ER (entity as a mini table), timeline, swimlane, quadrant, layer stack, nested, tree, Gantt, bar chart (value labels at bar ends). When two types seem useful, pick the dominant axis. For a type outside this list (radar, venn, org chart), consult the upstream repo before improvising.
 
-## 6. Layout & spacing
+## 6. Layout and spacing
 
-**4px grid:** coordinates, dimensions, gaps and padding divisible by 4. Node widths from {80, 96, 112, 128, 144, 160, 180, 200, 240, 320}, gaps {20, 24, 32, 40, 48}, box padding {8, 12, 16}, radius {4, 6, 8}. Exempt: stroke widths, opacities and mono micro-type (7–9px, §3). A coordinate ending in 1, 2, 3, 5, 6, 7 or 9 needs fixing.
+**4px grid:** coordinates, dimensions, gaps and padding divisible by 4. Node widths from {80, 96, 112, 128, 144, 160, 180, 200, 240, 320}, gaps {20, 24, 32, 40, 48}, box padding {8, 12, 16}. Exempt: stroke widths, opacities, mono micro-type (7–9px, §3), the radius {4, 6, 8}, the offsets and corner radius of the type tag that rides a node's top edge, the 6–10px gaps of arrow labels and their elevation of about 14px above the arrow, and text baselines.
 
 **Complexity budget per diagram:** 9 nodes, 12 arrows, 2 accent elements, 3 zones, 2 annotation callouts; sequence 5 lifelines; swimlane 5 lanes; quadrant 12 items; ER 8 entities; nested 6 levels; tree depth 4; layer stack 6 layers; bar chart 8 bars; Gantt 12 tasks. Past a limit, split into overview and detail. The connector rules never relax.
 

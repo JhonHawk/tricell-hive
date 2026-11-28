@@ -18,7 +18,14 @@ Verify any other behavior change with a direct check, or by extending its owning
 1. Name the realistic change to the code that would make it fail. If none exists, do not write it.
 2. Find the test that already owns that behavior. Each contract has one owner, at the strongest boundary the repository's harness runs cheaply, such as an integration test through HTTP and the database rather than a unit test with mocked collaborators. Extend the owner, its table or its fixtures, instead of adding a sibling test or the same assertion at another layer. Keep a lower-layer test only for a branch the owner cannot reach cheaply.
 3. Replace with a test double only what crosses the system boundary: an external service, time, randomness, or, in a client's tests, the project's own server API through stub data typed by its contract. Do not mock the project's own modules in the same process, nor its own database when the repository has an integration harness.
-4. Keep a test that fails when the behavior its users observe breaks and still passes when only the internals change. Reject one that asserts how the code is written instead of what it does, such as which internal functions were called; that uses a double to supply the behavior it claims to check; that reads source code as text, unless the file's text is what the project delivers, such as guidance or documentation, never code or build configuration; that copies a list or inventory from the code; that computes its expected value with the code under test; that asserts something always true; or that needs an export, flag or wrapper only tests use.
+4. Keep a test that fails when the behavior its users observe breaks and still passes when only the internals change. Reject one that:
+   - asserts how the code is written instead of what it does, such as which internal functions were called;
+   - uses a double to supply the behavior it claims to check;
+   - reads source code as text, unless the file's text is what the project delivers, such as guidance or documentation, never code or build configuration;
+   - copies a list or inventory from the code;
+   - computes its expected value with the code under test;
+   - asserts something always true;
+   - needs an export, flag or wrapper only tests use.
 
 When the change handles a failure, a boundary value, a concurrent actor or a transaction, its verification covers that case too: the negative case, the limit, the ordering, or the rollback, in the owner test when there is one, otherwise in the direct check.
 

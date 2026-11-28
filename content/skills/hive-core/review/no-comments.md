@@ -5,7 +5,15 @@ Read before a review, for narrating comments. The review is that of a candidate,
 Scope: the comments the candidate adds or edits; untouched comments stay, so the diff stays reviewable.
 
 1. Sort each comment in scope:
-   - **Kill:** it narrates the code (`// loop over users`), restates a name or a type, restates a rule the code, its tests or its configuration in the repository already express, even when it states only part of the rule, marks a section the structure already shows, holds commented-out code, or records a past change (git holds history). A restated rule is a Kill only when the evidence names the line, test or setting that expresses it. A part the code does not express, a detail the code contradicts included, falls outside that Kill: cut the comment down to that part and sort it on its own, as this step sets.
+   - **Kill:** it is any of these:
+     - it narrates the code (`// loop over users`);
+     - it restates a name or a type;
+     - it restates a rule the code, its tests or its configuration in the repository already express, even when it states only part of the rule;
+     - it marks a section the structure already shows;
+     - it holds commented-out code;
+     - it records a past change (git holds history).
+
+     A restated rule is a Kill only when the evidence names the line, test or setting that expresses it. A part the code does not express, a detail the code contradicts included, falls outside that Kill: cut the comment down to that part and sort it on its own, as this step sets.
    - **Public API contract:** keep documentation on the declaration when the project exposes that API to consumers and the text specifies an observable guarantee or a caller obligation the signature leaves out, such as who closes a returned stream. Verify the public surface against the package entry points or published API reference and the claim against the implementation or tests. Apply the other categories to implementation notes and repeated signature details in the same block.
    - **Keep:** it states a fact the code cannot: why a surprising choice was made, a protocol or vendor quirk with its source, a link to the issue or spec that forces the shape, a warning about a side effect invisible at the call site, or a license header.
    - **Constraint:** it tells the next editor what not to do (`do not remove`, `do not reorder`, `talk to X before changing`).

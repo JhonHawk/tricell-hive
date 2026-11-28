@@ -54,7 +54,11 @@ B - **<two to five words>**: <…>
 Ask a round through the host's question tool when it waits for the answer, such as Claude Code's question tool or Codex's `request_user_input`; otherwise write it in the text in full, as «Format» sets. The round appears once per turn, in the card or in the text, since a repeated round makes the user read and answer it twice; the one exception is a card that closed by itself, as [unanswered card](questions/unanswered.md) sets.
 
 - A choice asked as a prose question or reply offer, such as "interactive or hold?" or "reply «automatic» and I start", is a failure on every host and in every mode: a decision is asked in the round's format, through the card or in the text. A review mechanism stated as [delivery questions](../git/delivery-ask.md) sets is not asked.
-- A waiting card without option descriptions carries each option's effect in its label. With no waiting card (none in this mode, one that returns at once such as `request_user_input_async` in a mode with no `request_user_input`, one that fails other than by the user's dismissal, a headless run, a child or unattended work), the round goes in the text in full; a form the host requires keeps the ID or header, the letters, the effects and the `(★)` option with its reason.
+- A waiting card without option descriptions carries each option's effect in its label. With no waiting card, the round goes in the text in full; a form the host requires keeps the ID or header, the letters, the effects and the `(★)` option with its reason. There is no waiting card when:
+  - none exists in this mode;
+  - one returns at once, such as `request_user_input_async` in a mode with no `request_user_input`;
+  - one fails other than by the user's dismissal;
+  - the run is headless, a child or unattended work.
 - Through the card: write first, as visible text, the context line, the report the round needs and the waiting line, never the decisions themselves; then, with no tool call between, ask each decision or finding as one question, in one call up to the tool's limit (four on Claude Code, three on Codex) or consecutive calls with no message between. The turn ends with the card. Each question stands alone:
 
 ```
