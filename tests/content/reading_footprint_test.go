@@ -269,8 +269,9 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 				// The change close-on-demand added the Close pending row to close-modes
 				// and close-report and pointed report-endings and flow-close at it;
 				// the user accepted that growth on 2026-11-28
-				// (D12 A), on feat/close-on-demand from development at 0daa08be.
-				const closeOnDemandAllowance = 1098
+				// (D12 A), on feat/close-on-demand from development at 0daa08be,
+				// measured again after the fixes of its review findings.
+				const closeOnDemandAllowance = 1204
 				allowance := planReviewAllowance + reportingFamilyAllowance + reuseSoundBaseAllowance + skillRegistryAllowance + closeOnDemandAllowance
 				if like >= declared.bytes+allowance {
 					t.Errorf("plan-build-required union without the moments the baseline did not read is %d B, not below the baseline %d B plus the %d B allowance", like, declared.bytes, allowance)
