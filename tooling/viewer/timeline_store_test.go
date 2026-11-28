@@ -516,8 +516,21 @@ func TestTimelineRuntimeWorkspaceBecomesCoordinatorRepository(t *testing.T) {
 	if err != nil || response.Session.ProjectKey != registration.Root || response.Session.ViewerSessionID != old {
 		t.Fatal("git init without a remote changed the project key", err)
 	}
+	pathLink := filepath.Join(t.TempDir(), "path-link")
+	if err = os.Symlink(registration.Root, pathLink); err != nil {
+		t.Fatal(err)
+	}
+	viaPathLink := request
+	viaPathLink.Source.ProjectRoot, viaPathLink.Source.NativeSessionID, viaPathLink.OperationID = pathLink, "path-link-native", "path-link"
+	pathLinked, err := s.TimelineCreate(viaPathLink)
+	if err != nil || pathLinked.Session.ProjectKey != registration.Root {
+		t.Fatal("a path-bound work through an alias:", err)
+	}
 	remote = "https://github.example/team/workspace.git"
 	const remoteKey = "github.example/team/workspace"
+	if err = os.Remove(pathLink); err != nil {
+		t.Fatal(err)
+	}
 	create := func(native, op string) TimelineSessionResponse {
 		t.Helper()
 		r := request
@@ -567,7 +580,10 @@ func TestTimelineRuntimeWorkspaceBecomesCoordinatorRepository(t *testing.T) {
 	if err != nil {
 		t.Fatal("a root holding path-bound and remote-bound works failed to load:", err)
 	}
-	for id, key := range map[string]string{old: registration.Root, fresh.Session.ViewerSessionID: remoteKey, linked.Session.ViewerSessionID: remoteKey} {
+	if conflicts := restarted.TimelineIdentityConflicts(); len(conflicts) != 0 {
+		t.Fatalf("path-bound and remote-bound works reported as conflicts: %+v", conflicts)
+	}
+	for id, key := range map[string]string{old: registration.Root, pathLinked.Session.ViewerSessionID: registration.Root, fresh.Session.ViewerSessionID: remoteKey, linked.Session.ViewerSessionID: remoteKey} {
 		if v, err := restarted.TimelineGet(id); err != nil || v.ProjectKey != key {
 			t.Fatalf("work %s after restart: key %q, want %q: %v", id, v.ProjectKey, key, err)
 		}
