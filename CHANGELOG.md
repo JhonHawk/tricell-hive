@@ -12,6 +12,12 @@ raise the minor or the patch version.
 
 ### Added
 
+- At a stop that asks you to validate an app with sign-in, the agent signs in
+  for you: the desktop pane opens signed in when the password is a documented
+  public local value, and otherwise, as in a terminal, the question offers
+  **Open signed in**, a browser window per agent session that opens only when
+  you pick it. Browser checks sign in once per account and reuse the saved
+  state; `totp.py` prints a second factor's code from its key file.
 - Codex sessions receive Hive's message formats as developer context: the
   `SessionStart` hook prints a short entry that names each format's parts and
   links its rule, when a main session starts, is cleared or is compacted.
