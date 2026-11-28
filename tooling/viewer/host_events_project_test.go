@@ -88,3 +88,25 @@ func TestHostEventErrorWhenNoCandidateResolvesIsTheNearestOne(t *testing.T) {
 	_, err = h.store.TimelineHostEvent(event)
 	requireTimelineCode(t, err, "project_unavailable")
 }
+
+// A work bound to its root's path before the root had a remote still takes its
+// session's events once `origin` gives the root a remote key.
+func TestHostEventReachesAPathBoundWorkAfterOrigin(t *testing.T) {
+	h := newHostEventHarness(t)
+	if !filepath.IsAbs(h.work.ProjectKey) {
+		t.Fatalf("fixture work is not path-bound: %q", h.work.ProjectKey)
+	}
+	h.store.remote = func(string) (string, error) { return "https://github.example/team/repository.git", nil }
+	h.advance()
+	if r := h.mustSend(h.event("activity", TimelineHostEventData{}, h.work.ViewerSessionID, "")); r.Status != "applied" {
+		t.Fatalf("named event after origin: %+v", r)
+	}
+	named := h.current().LastActivityAt
+	h.advance()
+	if r := h.mustSend(h.event("activity", TimelineHostEventData{}, "", "")); r.Status != "applied" {
+		t.Fatalf("unnamed event after origin: %+v", r)
+	}
+	if h.current().LastActivityAt == named {
+		t.Fatal("the unnamed event skipped the path-bound work")
+	}
+}

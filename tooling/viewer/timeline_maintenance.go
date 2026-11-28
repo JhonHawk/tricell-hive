@@ -114,6 +114,7 @@ func (s *Store) timelineMaintainLocked() error {
 	if err := s.timelineReconcile(); err != nil {
 		return err
 	}
+	s.timelineRecheckConflicts()
 	var failures []error
 	for _, old := range s.timeline {
 		if old.Session == nil || old.DeletePending {

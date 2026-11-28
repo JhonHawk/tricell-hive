@@ -272,10 +272,16 @@ func TestV3ResolvedIdentityAndAliases(t *testing.T) {
 		t.Fatal("lost durable binding", err)
 	}
 	before := stateManifest(t, filepath.Dir(s.Dir()))
-	_, err = Open(Options{StateDir: filepath.Dir(s.Dir()), GitRemote: func(string) (string, error) { return "https://github.example/team/changed", nil }})
-	if err == nil {
-		t.Fatal("changed identity accepted")
+	changed, err := Open(Options{StateDir: filepath.Dir(s.Dir()), GitRemote: func(string) (string, error) { return "https://github.example/team/changed", nil }})
+	if err != nil {
+		t.Fatal("a changed identity stopped the load:", err)
 	}
+	if conflicts := changed.TimelineIdentityConflicts(); len(conflicts) != 1 || conflicts[0].ViewerSessionID != v.ViewerSessionID || conflicts[0].StoredKey != v.ProjectKey || conflicts[0].CurrentKey != "github.example/team/changed" {
+		t.Fatalf("changed identity not isolated: %+v", conflicts)
+	}
+	request.OperationID = "changed"
+	_, err = changed.TimelineCreate(request)
+	requireTimelineCode(t, err, "project_identity_changed")
 	if !reflect.DeepEqual(before, stateManifest(t, filepath.Dir(s.Dir()))) {
 		t.Fatal("identity failure wrote state")
 	}
@@ -532,7 +538,7 @@ func TestV3UnavailableAliasDoesNotHideContradictoryIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = s.TimelineCreate(TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "bound", Source: TimelineSource{ProjectRoot: alias, Host: "codex", NativeSessionID: "native"}, Title: "Bound work", Summary: "Keep original provenance", Tickets: []TimelineTicketInput{}})
+	bound, err := s.TimelineCreate(TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "bound", Source: TimelineSource{ProjectRoot: alias, Host: "codex", NativeSessionID: "native"}, Title: "Bound work", Summary: "Keep original provenance", Tickets: []TimelineTicketInput{}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -541,8 +547,14 @@ func TestV3UnavailableAliasDoesNotHideContradictoryIdentity(t *testing.T) {
 	}
 	remote = "https://github.example/team/contradictory"
 	before := stateManifest(t, state)
-	_, err = Open(Options{StateDir: state, GitRemote: reader})
-	requireTimelineCode(t, err, "project_identity_changed")
+	reopened, err := Open(Options{StateDir: state, GitRemote: reader})
+	if err != nil {
+		t.Fatal("a contradictory identity stopped the load:", err)
+	}
+	want := []TimelineIdentityConflict{{ViewerSessionID: bound.Session.ViewerSessionID, Title: "Bound work", Root: alias, StoredKey: "github.example/team/original", CurrentKey: ""}}
+	if got := reopened.TimelineIdentityConflicts(); !reflect.DeepEqual(got, want) {
+		t.Fatalf("conflicts %+v, want %+v", got, want)
+	}
 	if !reflect.DeepEqual(before, stateManifest(t, state)) {
 		t.Fatal("contradictory identity altered state")
 	}

@@ -267,7 +267,7 @@ def cmd_plan(args, apply=False):
     print(f"git init -b {args.base_branch}: done")
     print("Next (not run): commit these paths through git-workflow's git_state.py, naming each one:")
     print("  python3 -I <git-workflow-dir>/scripts/git_state.py commit --repo " + root + ' -m "chore: workspace coordinator" ' + " ".join(sorted(files)))
-    print("A remote is not created and nothing is pushed; adding `origin` later changes the viewer project key.")
+    print("A remote is not created and nothing is pushed; after `origin` is added, new viewer works take its remote as project key and earlier works keep the path.")
     return 0
 
 
