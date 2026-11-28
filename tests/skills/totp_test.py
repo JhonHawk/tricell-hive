@@ -74,7 +74,6 @@ class TotpTest(unittest.TestCase):
         self.assertEqual((status, out), (0, "287082\n"))
 
     def test_key_as_an_authenticator_shows_it(self):
-        # Grouped in fours, lowercase, with the trailing newline a copy adds.
         grouped = " ".join(b32(SHA1_SEED).lower()[i : i + 4] for i in range(0, 32, 4)) + "\n"
         status, out, _ = self.run_at(59, grouped)
         self.assertEqual((status, out), (0, "287082\n"))
