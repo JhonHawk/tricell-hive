@@ -311,11 +311,24 @@ func runApply(args []string) error {
 	if err != nil {
 		return err
 	}
+	// The notes update prints, computed before Apply while the hook entries are
+	// not yet in place, and printed on stderr so stdout stays the result. A hook
+	// file that changed since the plan was saved drops them: Apply then reports
+	// that stale target by its path.
+	notes, err := management.HostHookNotes(p)
+	if err != nil {
+		notes = nil
+	}
+	notes = append(notes, management.HostHookWarnings(p)...)
 	result, err := (management.Engine{}).Apply(p)
 	if err != nil {
 		return err
 	}
-	return output(map[string]string{"result": result})
+	if err := output(map[string]string{"result": result}); err != nil {
+		return err
+	}
+	printHookNotes(os.Stderr, notes)
+	return nil
 }
 
 func runStatus(args []string) error {

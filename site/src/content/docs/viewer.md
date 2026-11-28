@@ -52,7 +52,7 @@ What each host registers and its known limits:
 | Host | What Hive installs | Limits |
 | --- | --- | --- |
 | Claude Code | Entries that call `hive hook` in `~/.claude/settings.json` (session start and end, prompts, subagents, native task created and completed). | Claude Code holds settings hooks in an untrusted folder until you accept its workspace trust. |
-| Codex | Entries in `~/.codex/hooks.json` (session start and end, prompts, subagent start). | Hive never writes Codex's trust: approve the hook once from `/hooks`, and until then Codex skips it. No native task events. |
+| Codex | Entries in `~/.codex/hooks.json` (session start and end, prompts, subagent start); session start also adds Hive's message formats as developer context. | Hive never writes Codex's trust: approve the hook from `/hooks`, and again after a Hive update that changes it, which `hive update` and `hive apply` say; until then Codex skips it. No native task events. |
 | Grok Build | A second hook file, `~/.grok/hooks/hive-session-events.json`. | Restart open sessions after installing. No native task events. |
 | Cursor CLI | Entries in `~/.cursor/hooks.json`. | Verified only in the installed code; Cursor CLI's use of that file is not documented. No native task events. |
 | Antigravity | A named hook `hive` in `~/.gemini/config/hooks.json` (session start, each prompt, and each turn end). | `agy` has no session-end event, so a turn end counts as activity and never closes the session. Observed with the `agy` CLI; sessions in the Antigravity App are not identified for the viewer. No native task events. |
