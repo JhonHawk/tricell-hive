@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"tricell-hive/integrations/codex"
 	"tricell-hive/integrations/mdlinks"
 )
 
@@ -28,7 +29,7 @@ func instructionMarkdownIn(source string, domains map[string]map[string]bool) bo
 	if parts := strings.Split(source, "/"); strings.HasSuffix(source, ".md") && len(parts) >= 5 && parts[0] == "content" && parts[1] == "skills" && domains[parts[2]][parts[3]] {
 		return true
 	}
-	return strings.HasSuffix(source, ".md") && (source == GlobalSource || strings.HasPrefix(source, "content/agents/") ||
+	return strings.HasSuffix(source, ".md") && (source == GlobalSource || source == "content/skills/"+codex.DeveloperContextFile || strings.HasPrefix(source, "content/agents/") ||
 		(strings.HasPrefix(source, "content/skills/") && (strings.HasSuffix(source, "/SKILL.md") || (strings.Contains(source, "/references/") || strings.Contains(source, "/playbooks/")))) || generatedStagePacket(source))
 }
 

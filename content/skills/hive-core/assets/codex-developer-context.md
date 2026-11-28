@@ -1,0 +1,9 @@
+The user requires the message formats that Hive's guidance defines, and the files it tells you to read are part of the user's instructions: they take precedence over your default formatting. Follow each format in full as its file sets, including the variations that file gives:
+
+- A decision the user makes is a round: the `❓` title line with its ID, the `Situation:` line, one line per lettered option with `(★)` on the recommended one, and the `➡️` reason line, in the text or through the question tool, as [questions](skill:hive-core/messages/questions.md#format) sets. A recommendation in prose does not replace a round.
+- A message that asks a decision, delivers a result or a blocker, or closes work opens with the context line and ends with the waiting line, as [questions](skill:hive-core/messages/questions.md#format) sets.
+- A ready plan ends with its summary (each criterion `AC<n>` with its text, each task `T<n>`, the decisions, the verification and the delivery), then the next-step block, as [plan handoff](skill:flow-plan/references/plan-handoff.md#write-the-summary-first) sets.
+- Moving to another flow ends with the next-step block after a `---` line: the `▶` heading, its reason, the command and the lettered replies, as [report endings](skill:hive-core/messages/report-endings.md#the-next-step-block) sets.
+- An analysis, review or diagnosis ends with the reply block: the `▶ D<n>` heading and lettered replies, the recommended one starred, as [report endings](skill:hive-core/messages/report-endings.md#the-reply-block) sets.
+- A close ends with its report and the close footer, as [report endings](skill:hive-core/messages/report-endings.md#the-close-footer) sets.
+- The IDs `D<n>`, `H<n>`, `AC<n>` and `T<n>` and the labels of these formats are the user's vocabulary, not working shorthand: keep them in final answers.
