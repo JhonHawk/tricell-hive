@@ -552,7 +552,7 @@ files stay in the repository.
 
 #### Host hooks
 
-A user-scope install also registers a `hive hook` command in each host (silent, except on Antigravity, which requires a JSON reply on every run),
+A user-scope install also registers a `hive hook` command in each host (silent, except on Antigravity, which requires a JSON reply on every run, and when a Codex session starts, is cleared or is compacted, where it prints Hive's message formats as developer context),
 which reports the session's start, activity and end, and where the host has one
 its native task list, to the viewer. The viewer shows them as *From host*, apart
 from what the agent publishes, and they never start or complete a stage, approve

@@ -9,6 +9,7 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"tricell-hive/integrations/codex"
 	"tricell-hive/integrations/hostevent"
 	"tricell-hive/tooling/viewer"
 )
@@ -69,9 +70,11 @@ func runHookCLI(t *testing.T, stdin string, args ...string) (stdout, stderr stri
 }
 
 // mustHook runs a hook and asserts the contract every path keeps: no output, exit 0.
+// Its home is an empty folder, so an entry installed in the real home, such as
+// Hive's Codex developer context, never reaches the test.
 func mustHook(t *testing.T, state, stdin string, args ...string) {
 	t.Helper()
-	out, errOut, err := runHookCLI(t, stdin, append(args, "--state-dir", state)...)
+	out, errOut, err := runHookCLI(t, stdin, append(args, "--state-dir", state, "--home", t.TempDir())...)
 	if out != "" || errOut != "" || err != nil {
 		t.Fatalf("hook %v printed %q / %q or failed: %v", args, out, errOut, err)
 	}
@@ -505,5 +508,84 @@ func TestHostProcessMatchesInterpreterScripts(t *testing.T) {
 		if got := hostProcessMatches(c.host, c.comm, c.args); got != c.want {
 			t.Fatalf("%+v got %v", c, got)
 		}
+	}
+}
+
+// --- Codex developer context ---
+
+// codexHome installs a developer-context entry of body under a temporary home
+// and returns the home and its Codex skills folder.
+func codexHome(t *testing.T, body string) (home, skills string) {
+	t.Helper()
+	home = t.TempDir()
+	skills = filepath.Join(home, ".agents", "skills")
+	entry := filepath.Join(skills, codex.DeveloperContextFile)
+	if err := os.MkdirAll(filepath.Dir(entry), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(entry, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return home, skills
+}
+
+const codexEntry = "Follow the [questions](skill:hive-core/messages/questions.md#format) format.\n"
+
+func TestHookCodexPrintsTheDeveloperContextOnlyAtTheMainSessionStart(t *testing.T) {
+	home, skills := codexHome(t, codexEntry)
+	real, err := filepath.EvalSymlinks(skills) // the hook resolves the home as the installer does
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "Follow the [questions](<" + filepath.Join(real, "hive-core/messages/questions.md#format") + ">) format.\n"
+	big, _ := codexHome(t, strings.Repeat("x", codex.DeveloperContextLimit+1))
+	cases := []struct {
+		name, home, event, payload, want string
+	}{
+		{"main session start", home, "SessionStart", `{"session_id":"cx-1","cwd":"/w","source":"startup"}`, want},
+		{"start after a compaction", home, "SessionStart", `{"session_id":"cx-1","cwd":"/w","source":"compact"}`, want},
+		{"cleared session", home, "SessionStart", `{"session_id":"cx-1","cwd":"/w","source":"clear"}`, want},
+		{"no source", home, "SessionStart", `{"session_id":"cx-1","cwd":"/w"}`, want},
+		{"resumed session already holds it", home, "SessionStart", `{"session_id":"cx-1","cwd":"/w","source":"resume"}`, ""},
+		{"forked session already holds it", home, "SessionStart", `{"session_id":"cx-1","cwd":"/w","source":"fork"}`, ""},
+		{"subagent", home, "SessionStart", `{"session_id":"cx-1","agent_id":"ag-1","cwd":"/w"}`, ""},
+		{"other event", home, "UserPromptSubmit", `{"session_id":"cx-1","cwd":"/w"}`, ""},
+		{"no entry installed", t.TempDir(), "SessionStart", `{"session_id":"cx-1","cwd":"/w"}`, ""},
+		{"entry over the limit", big, "SessionStart", `{"session_id":"cx-1","cwd":"/w"}`, ""},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			withHookHost(t, "codex", nil)
+			out, errOut, err := runHookCLI(t, c.payload, "codex", c.event, "--home", c.home, "--state-dir", t.TempDir())
+			if out != c.want || errOut != "" || err != nil {
+				t.Fatalf("stdout %q, stderr %q, err %v; want stdout %q", out, errOut, err, c.want)
+			}
+		})
+	}
+}
+
+// Another host's hook with the same home prints nothing: only Codex reads
+// SessionStart's output as developer context.
+func TestHookOtherHostsIgnoreTheCodexDeveloperContext(t *testing.T) {
+	home, _ := codexHome(t, codexEntry)
+	withHookHost(t, "claude", nil)
+	out, errOut, err := runHookCLI(t, `{"session_id":"cc-1","cwd":"/w"}`, "claude", "SessionStart", "--home", home, "--state-dir", t.TempDir())
+	if out != "" || errOut != "" || err != nil {
+		t.Fatalf("stdout %q, stderr %q, err %v", out, errOut, err)
+	}
+}
+
+// The entry depends on the home alone: a state folder Hive cannot resolve stops
+// the viewer work, not the developer context.
+func TestHookCodexPrintsTheDeveloperContextWhenTheStateFolderFails(t *testing.T) {
+	home, _ := codexHome(t, codexEntry)
+	notADir := filepath.Join(t.TempDir(), "file")
+	if err := os.WriteFile(notADir, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	withHookHost(t, "codex", nil)
+	out, errOut, err := runHookCLI(t, `{"session_id":"cx-1","cwd":"/w"}`, "codex", "SessionStart", "--home", home, "--state-dir", filepath.Join(notADir, "state"))
+	if !strings.Contains(out, "Follow the [questions](<") || errOut != "" || err != nil {
+		t.Fatalf("stdout %q, stderr %q, err %v", out, errOut, err)
 	}
 }

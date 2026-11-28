@@ -10,6 +10,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -256,5 +257,32 @@ func TestHookEventsSetOnAClosedRunAreQueued(t *testing.T) {
 	}
 	if got := probe.arrived(); len(got) != 0 {
 		t.Fatalf("a closed run posted %v", got)
+	}
+}
+
+// Codex's developer context is printed before the viewer work: a viewer that
+// holds the event until the budget ends still leaves the entry on stdout.
+func TestHookCodexPrintsTheDeveloperContextBeforeTheViewerWork(t *testing.T) {
+	h := newHookFixture(t)
+	h.openBuild("codex-context")
+	withProcessNames(t, map[int]string{hookHostPID: "codex", hookShellPID: "sh"})
+	budget := withFakeBudget(t, time.Minute)
+	release := make(chan struct{})
+	probe := h.probeViewer(func(int) {
+		budget.expire() // the event is in flight: the budget ends now
+		select {
+		case <-release:
+		case <-time.After(5 * time.Second):
+		}
+	})
+	home, _ := codexHome(t, codexEntry)
+	out, errOut, err := runHookCLI(t, `{"session_id":"cx-1","cwd":"`+h.project+`"}`, "codex", "SessionStart", "--home", home, "--state-dir", h.f.stateDir)
+	close(release)
+	time.Sleep(200 * time.Millisecond) // let the abandoned run drain before the state is removed
+	if len(probe.arrived()) == 0 {
+		t.Fatal("no event reached the viewer, so the budget did not end during the viewer work")
+	}
+	if !strings.Contains(out, "Follow the [questions](<") || errOut != "" || err != nil {
+		t.Fatalf("stdout %q, stderr %q, err %v", out, errOut, err)
 	}
 }

@@ -1,13 +1,15 @@
 package main
 
-// hook_command.go is `hive hook <host> <event>`, the silent subcommand every
-// host's hook (or plugin, or extension) runs. It reads the host's payload on
-// stdin, tells which host really ran it, records the session map, and reports the
+// hook_command.go is `hive hook <host> <event>`, the subcommand every host's
+// hook (or plugin, or extension) runs. It reads the host's payload on stdin,
+// tells which host really ran it, records the session map, and reports the
 // event to the viewer or queues it. It never fails: hosts read a non-zero exit,
 // and some read stdout, as a verdict or as model context, so every error and
-// panic ends in exit 0. It prints nothing, except for Antigravity, whose
+// panic ends in exit 0. It prints nothing, with two exceptions. Antigravity's
 // contract wants a JSON object from every hook: there every path, errors
 // included, prints the smallest object its event accepts (antigravityReply).
+// Codex adds what SessionStart prints to the model's developer context: there
+// the main session's start prints Hive's entry (codex.DeveloperContext).
 //
 // The host named on the command line is only a hint: Grok and Cursor CLI also
 // run the hooks registered in Claude Code's settings, with their own payloads.
@@ -26,6 +28,7 @@ import (
 	"tricell-hive/integrations/hostevent"
 	"tricell-hive/integrations/opencode"
 	"tricell-hive/integrations/pi"
+	"tricell-hive/integrations/target"
 	"tricell-hive/tooling/management"
 	"tricell-hive/tooling/viewer"
 )
@@ -76,7 +79,8 @@ func antigravityReply(args []string) string {
 }
 
 // runHook never returns an error and writes nothing to stderr. It writes nothing
-// to stdout either, except the reply Antigravity's contract requires.
+// to stdout either, except the reply Antigravity's contract requires and the
+// developer context of a Codex session's start.
 func runHook(args []string, stdin io.Reader) {
 	reply := antigravityReply(args)
 	defer func() {
@@ -195,6 +199,14 @@ func processHook(opts hookOptions, hint, event string, stdin io.Reader, deps vie
 		return
 	}
 	host := detectHookHost(hint, payload, deps.getenv)
+	if host == codex.HookHost {
+		// Printed before any viewer work, and from the home alone, so neither a
+		// slow viewer nor a state folder that cannot be resolved costs the session
+		// its developer context.
+		if text := codex.DeveloperContext(event, payload, codexSkillsDir(opts.home)); text != "" {
+			_, _ = io.WriteString(os.Stdout, text)
+		}
+	}
 	events := translateHook(host, hostevent.Input{Event: event, Payload: payload, Getenv: deps.getenv})
 	if len(events) == 0 {
 		return
@@ -224,6 +236,23 @@ func processHook(opts hookOptions, hint, event string, stdin io.Reader, deps vie
 		built = append(built, buildHostEvent(ev, hostStart))
 	}
 	sendHookEvents(options, state, built, run)
+}
+
+// codexSkillsDir is the user-scope Codex skills folder under home, or under the
+// user's home when the hook got no --home, resolved as the installer resolves
+// it; "" when no home can be found.
+func codexSkillsDir(home string) string {
+	if home == "" {
+		var err error
+		if home, err = os.UserHomeDir(); err != nil {
+			return ""
+		}
+	}
+	home, err := target.Canonical(home)
+	if err != nil {
+		return ""
+	}
+	return codex.SkillsDir(target.Config{Scope: "user", Home: home})
 }
 
 // hookOccurredAt is the time the event is reported with. The viewer derives the

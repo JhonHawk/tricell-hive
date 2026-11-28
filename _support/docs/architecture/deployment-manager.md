@@ -230,7 +230,9 @@ Native task-list changes become tasks keyed `host:<native task ID>` (up to 50,
 bound to the active stage) only while the work has no agent-registered task.
 Events never start or complete a stage, change authority, record approvals or
 close a work; a session end only updates activity. The hook prints nothing,
-finishes within 2 s and exits 0 on any error. Which host events exist and what
+except Antigravity's required reply and, when a Codex main session starts, is
+cleared or is compacted (not resumed or forked), the developer-context entry `hive-core/assets/codex-developer-context.md` with its
+`skill:` links rewritten; it finishes within 2 s and exits 0 on any error. Which host events exist and what
 each hook payload carries is in [host session events](host-session-events.md).
 
 Registration records project roots in `viewer/registry.json`. Resolution uses
@@ -592,8 +594,9 @@ is `hashline_read`, which the matcher does not cover. Sources: Grok 1.0.55
 User-scope installs also let each host report its session to the viewer through
 `hive hook <host> <event>` (see [Walkthrough viewer](#walkthrough-viewer) for the
 endpoint and queue, and [host session events](host-session-events.md) for the
-verified facts per host and version). Every hook is silent, bounded to 2 s, exits
-0 on any error, and carries an explicit 5 s timeout where the file has one. They
+verified facts per host and version). Every hook is silent except Antigravity's
+required reply and the Codex developer context described above, bounded to 2 s,
+exits 0 on any error, and carries an explicit 5 s timeout where the file has one. They
 call the `hive` binary that planned the install, so they share the stable
 executable rule of the Grok read-whole hook above.
 
