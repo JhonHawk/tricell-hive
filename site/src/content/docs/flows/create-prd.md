@@ -19,7 +19,8 @@ Is the returns document ready for development? Check it against the code.
 
 ## What it asks
 
-- At most three questions per round, only what changes a rule and nothing it read answers, each with a recommended answer. The questions whose answer changes the most rules come first, and it stops when the rest would change no rule or you say to go on.
+- Only what changes a rule and nothing it read answers, each with a recommended answer. Every question that does not wait on another answer goes in the same round, in consecutive cards when they do not fit in one, and the ones whose answer changes the most rules come first. It stops when the rest would change no rule or you say to go on.
+- The questions the review leaves for you are asked in one round before the version is reported, so a single version holds their answers.
 - A business rule you do not decide, because it belongs to someone else or is not known yet, is never assumed. It is written as to decide, with who answers it.
 - Where the document goes, when you named no destination, and which document tool to use when the session can write to more than one.
 - Whether you approve a version, once it passes its checks and its review. Approval freezes the version, and its rules go to development as written.

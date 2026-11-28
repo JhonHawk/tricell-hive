@@ -22,7 +22,7 @@ Is ticket 214 ready for someone to pick up?
 ## What it asks
 
 - Whether to create the ticket, once the draft is shown, when you used the skill on its own. When your answer already chose the ticket inside a flow, such as a finding answered "ticket", nothing more is asked.
-- At most three questions per round, only what changes the ticket and no read of the code or the tracker answers, each with a recommended answer. What the agent does not ask is written in the ticket as an assumption.
+- Only what changes the ticket and no read of the code or the tracker answers, each with a recommended answer. Every question that does not wait on another answer goes in the same round, in consecutive cards when they do not fit in one. What the agent does not ask is written in the ticket as an assumption.
 - Which tracker and repository, only in a session without a repository, where no `## Hive` section declares a tracker.
 - One approval for the whole set, when the work is broken down into a parent ticket with children. The agent shows every ticket before it writes any, with each milestone or label it would create, the child that holds each capability several children need, and which requirement rules each child covers.
 - To confirm the comment or the edit it proposes on a ticket that already exists, before anything is posted.

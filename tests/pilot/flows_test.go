@@ -1215,7 +1215,7 @@ func TestAssessFlowsWiresTicketCriteriaOnlyForTheTicketCase(t *testing.T) {
 		f := fixture{ID: tc.id}
 		f.Expected.SkillRead = "create-issue"
 		got := assessedCriteria(assessFlows(r, f, t.TempDir()))
-		for _, name := range []string{"ticket_no_write_attempt", "ticket_draft_or_questions", "ticket_at_most_three_questions"} {
+		for _, name := range []string{"ticket_no_write_attempt", "ticket_draft_or_questions"} {
 			if _, present := got[name]; present != tc.applies {
 				t.Errorf("%s: %s present=%t, want %t", tc.id, name, present, tc.applies)
 			}
@@ -1337,36 +1337,6 @@ func TestTicketDraftOrQuestions(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got := ticketDraftOrQuestions(result{Trace: traceReport{Events: tc.events}})
-			if got.Status != tc.want {
-				t.Fatalf("status = %s, want %s: %+v", got.Status, tc.want, got)
-			}
-		})
-	}
-}
-
-// Breaks if the count stops reading the questions nested in one call, the
-// decision lines of the final text, or the limit of three.
-func TestTicketAtMostThreeQuestions(t *testing.T) {
-	for _, tc := range []struct {
-		name   string
-		events []traceEvent
-		want   string
-	}{
-		{"four questions in one call", []traceEvent{ticketQuestionEvent(4)}, "fail"},
-		{"three questions in one call", []traceEvent{ticketQuestionEvent(3)}, "pass"},
-		{"two calls add up", []traceEvent{ticketQuestionEvent(2), ticketQuestionEvent(3)}, "fail"},
-		{"the same card asked again counts once", []traceEvent{ticketQuestionEvent(2), ticketQuestionEvent(2)}, "pass"},
-		{"a card before the work adds to later decisions", []traceEvent{ticketQuestionEvent(3), {Kind: "shell", Command: "cat BACKLOG.md", Line: 6}, ticketTextEvent("D1 — a?\nD2 — b?\nD3 — c?")}, "fail"},
-		{"decisions in the text and in their card count once", []traceEvent{ticketTextEvent("D1 — a?\nD2 — b?"), ticketQuestionEvent(2)}, "pass"},
-		{"named card questions add to other text decisions", []traceEvent{ticketTextEvent("D1 — a?\nD2 — b?"), {Kind: "question", Tool: "AskUserQuestion", Line: 5, Input: json.RawMessage(`{"questions":[{"question":"D3 — c?"},{"question":"D4 — d?"}]}`)}}, "fail"},
-		{"four decision lines in the text", []traceEvent{ticketTextEvent("D1 — a?\nD2 — b?\nD3 — c?\nD4 — d?")}, "fail"},
-		{"option references are not decisions", []traceEvent{ticketTextEvent("D1 — a?\nD1-A: x\nD1-B: y\nElijo D1 B")}, "pass"},
-		{"one decision line", []traceEvent{ticketTextEvent("D1 — a?")}, "pass"},
-		{"decision line under a heading", []traceEvent{ticketTextEvent("### D1 — a?\nSituación: x")}, "pass"},
-		{"no question", []traceEvent{ticketTextEvent("Aquí está el borrador.")}, "not_observed"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			got := ticketAtMostThreeQuestions(result{Trace: traceReport{Events: tc.events}})
 			if got.Status != tc.want {
 				t.Fatalf("status = %s, want %s: %+v", got.Status, tc.want, got)
 			}
