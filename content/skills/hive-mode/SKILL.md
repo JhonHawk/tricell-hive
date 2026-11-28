@@ -32,7 +32,7 @@ Before step 1, open [ticket status](playbooks/ticket-status.md) when the user as
    - When the request's deliverable is a design in Figma or a requirement document, continue as step 0 sets, whether or not step 3 asked questions.
    - Otherwise, end with the route to `flow-plan` and its reason, unless the design stage below sends the work to its next-step block.
 
-   When this step ends with a route to `flow-plan`, `create-design` or `flow-build`, or continues into `flow-build`, write one line with the scope estimated from the reads, before the next-step block when there is one, so the user can narrow it: about how many files and which areas (for a chosen ticket, its complexity from «Assess a chosen ticket»), the playbook, and the stages and checks the guidance sends such work through, with a promotion only when the request asks for one. Mark it an estimate, such as "Scope (estimate): ~42 files (contracts, runtime, tests, manual) · plan + per-task verification + review + UX review · PR and CI". A reply that narrows the scope without naming a flow gets the revised line and the same ending again.
+   When this step ends with a route to `flow-plan`, `create-design` or `flow-build`, or continues into `flow-build`, write one line with the scope estimated from the reads, before the next-step block when there is one, so the user can narrow it. The line holds about how many files and which areas (for a chosen ticket, its complexity from «Assess a chosen ticket»), the playbook, and the stages and checks the guidance sends such work through, with a promotion only when the request asks for one. Mark it an estimate, such as "Scope (estimate): ~42 files (contracts, runtime, tests, manual) · plan + per-task verification + review + UX review · PR and CI". A reply that narrows the scope without naming a flow gets the revised line and the same ending again.
 
    **A screen to design.** Decide whether to offer [create-design](../create-design/SKILL.md) as [design stage](../hive-core/ui/design-stage.md) sets.
 
@@ -51,7 +51,7 @@ Settle a not-ready ticket's scope here: the plan settles how, never what enters.
 
 ## Pick the playbook
 
-A playbook orders the stages of a kind of work and names what is specific to it. Pick at most one and read its file in `playbooks/`, when it has one, before step 5's route, since a playbook can change the route; when none fits, or the work is large and crosses several kinds, follow steps 0 to 5 and pick none. The stages read it from the `Playbook` record. Read a kind with a file in `playbooks/` from that file and any other from its row; every kind ends in `flow-close`.
+A playbook orders the stages of a kind of work and names what is specific to it. Pick at most one and read its file in `playbooks/`, when it has one, before step 5's route, since a playbook can change the route; when none fits, or the work crosses two or more kinds of the table and no single kind covers most of the changes the request names, follow steps 0 to 5 and pick none. The stages read it from the `Playbook` record. Read a kind with a file in `playbooks/` from that file and any other from its row; every kind ends in `flow-close`.
 
 | Playbook | Work and what is specific to it |
 | --- | --- |
