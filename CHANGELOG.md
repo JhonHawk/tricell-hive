@@ -68,6 +68,13 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Each task of a plan file now has a `Risk:` line naming the risky category it
+  touches, or `none`, and the build launches a separate task verifier only when
+  that line names one. A plan written before the line existed is judged as
+  before.
+- The agent no longer reads a rule leaf again when a later step names it, if
+  it already read that leaf whole since the last compaction. Before, only the
+  leaves inside a flow's stage packet were exempt.
 - Codex's `/hooks` screen names Hive's `SessionStart` hook "Hive: add message
   formats as developer context and report session start". Codex skips the
   changed hook until you approve it again in `/hooks`.
