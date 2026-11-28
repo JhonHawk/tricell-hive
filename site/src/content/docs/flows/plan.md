@@ -39,7 +39,7 @@ A plan stays in the message only when the work fits one session on this machine:
 The plan file is one local Markdown file, never committed, in the work's own folder under the project's `workspace/`, named with the date and the work. The folder is the one home of the work: the plan, its research and reports, its captures and its evidence. The plan follows the [plan template](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/assets/plan.md) in one file:
 
 - The header, your request quoted, your decisions in plain words, the business rules, the scope with numbered acceptance criteria, and what the build needs from outside the repository, including the measured external facts and one line per class of effect with your answer, under `## Effects`.
-- `## Tasks`: small tasks, each saying which criteria it closes, what it depends on and how to check it, with a `## Checkpoint` and a progress section the build keeps up.
+- `## Tasks`: small tasks, each saying which criteria it closes, what it depends on, how to check it and which risky-change categories it touches, or none, which decides whether the build has a separate helper check it, with a `## Checkpoint` and a progress section the build keeps up.
 - `## Design`, only when the change has design decisions.
 
 A name the plan fixes, such as a route, a translation key, a table or a field, is written in English even when the plan's prose is in your language, since the build implements it as written; the plan's reviewer reports one that is not. The [naming language rule](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/principles/naming-language.md) sets which names stay as written.

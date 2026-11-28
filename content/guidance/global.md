@@ -53,7 +53,7 @@ These rules hold in every mode, including unattended delegation.
 
 ## Rule leaves
 
-A rule leaf is a file of `hive-core`, a skill the model does not load on its own. At the moment a line names, read the linked file whole and follow it; never invoke it as a skill, which a host may refuse. Flow steps link their leaves too; a flow's stage packet holds some leaves whole, and a leaf read there needs no new read until a compaction.
+A rule leaf is a file of `hive-core`, a skill the model does not load on its own. At the moment a line names, read the linked file whole and follow it; never invoke it as a skill, which a host may refuse. Flow steps link their leaves too; a flow's stage packet holds some leaves whole. Any leaf read whole needs no new read until a compaction.
 
 ### Messages
 
