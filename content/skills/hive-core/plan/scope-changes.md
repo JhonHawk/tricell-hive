@@ -11,8 +11,14 @@ When the user asks for something that would change open work, classify it agains
 
 A correction or added task that changes a written plan revises it as [Revise a plan in progress](plan-record.md#revise-a-plan-in-progress) sets.
 
-A ticket records work that must be done but will not be done in this session or with its context: it lies outside the files and modules the current work touches, needs another repository, person, decision or access, or is larger than a small understood change ([proportionality](proportionality.md)). This rule governs every proposal to open one, for a separate topic, a finding or a research result: recommend fixing now a finding whose fix changes only files the current work already changed and adds no task, dependency or effect, a ticket only for work this rule covers, and only listing a P3 finding. The current work needs no ticket; propose one for it only when the user asked to track it or the project guidance requires it. To search for an existing ticket, create one, break work into a parent ticket with children, or validate one, follow [create-issue](../../create-issue/SKILL.md).
+A ticket records work that must be done but will not be done in this session or with its context: it lies outside the files and modules the current work touches, needs another repository, person, decision or access, or is larger than a small understood change ([proportionality](proportionality.md)). This rule governs every proposal to open one, for a separate topic, a finding or a research result:
+
+- recommend fixing now a finding whose fix changes only files the current work already changed and adds no task, dependency or effect;
+- recommend a ticket only for work this rule covers;
+- recommend only listing a P3 finding.
+
+The current work needs no ticket; propose one for it only when the user asked to track it or the project guidance requires it. To search for an existing ticket, create one, break work into a parent ticket with children, or validate one, follow [create-issue](../../create-issue/SKILL.md).
 
 ## An external project
 
-When the reads show that the code the work changes lies in an external project, ask once per project and session, as a decision, before the first plan, branch or edit there, whether to continue here or open a session in that project, recommending the new session so that project's instruction files and `## Hive` settings govern from the start; "continue here" is the request for that change. Unattended work reports that work and its question as unresolved.
+When the reads show that the code the work changes lies in an external project, ask as a decision, before the first plan, branch or edit there, whether to continue here or open a session in that project, recommending the new session so that project's instruction files and `## Hive` settings govern from the start. Ask once per project and session. "Continue here" is the request for that change. Unattended work reports that work and its question as unresolved.
