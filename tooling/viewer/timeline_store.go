@@ -378,8 +378,11 @@ func (s *Store) timelineLoad() error {
 // revoke a previously validated durable binding. New publications still use
 // timelineProject and require a currently resolvable, registered source root.
 func (s *Store) timelineRestoredProject(record *timelineRecord, source TimelineSource) (string, error) {
-	_, key, _, err := s.timelineProject(source)
+	root, key, _, err := s.timelineProject(source)
 	if err == nil {
+		if timelinePathKeyGainedRemote(record.ProjectKey, key, root) {
+			return record.ProjectKey, nil
+		}
 		return key, nil
 	}
 	var failure *TimelineError
@@ -412,7 +415,7 @@ func (s *Store) timelineRestoredProject(record *timelineRecord, source TimelineS
 		canonicalBound = true
 		for _, other := range s.timeline {
 			for _, root := range other.Roots {
-				if root == repo.Root && other.ProjectKey != record.ProjectKey {
+				if root == repo.Root && !timelineKeysMatch(other.ProjectKey, record.ProjectKey, repo.Root) {
 					return "", timelineFailure("project_identity_changed", 409)
 				}
 			}
@@ -426,7 +429,7 @@ func (s *Store) timelineRestoredProject(record *timelineRecord, source TimelineS
 		if resolveErr != nil {
 			return "", resolveErr
 		}
-		if canonicalKey != record.ProjectKey {
+		if canonicalKey != record.ProjectKey && !timelinePathKeyGainedRemote(record.ProjectKey, canonicalKey, repo.Root) {
 			return "", timelineFailure("project_identity_changed", 409)
 		}
 	}
@@ -679,15 +682,20 @@ func (s *Store) timelineKeyOf(c timelineLocated) (string, error) {
 }
 
 // timelineBoundKey is the project key the stored works that use this root already
-// carry. It reads the store's records, so the caller holds s.mu.
+// carry. When works bound to the root's path and works bound to its remote both
+// use it, the remote key is the bound one, so a Git failure never gives a new
+// work the path key. It reads the store's records, so the caller holds s.mu.
 func (s *Store) timelineBoundKey(root string) (string, error) {
 	bound := ""
 	for _, record := range s.timeline {
 		for _, alias := range record.Roots {
-			if alias == root {
-				if bound != "" && bound != record.ProjectKey {
-					return "", timelineFailure("project_identity_changed", 409)
-				}
+			if alias != root {
+				continue
+			}
+			if bound != "" && !timelineKeysMatch(bound, record.ProjectKey, root) {
+				return "", timelineFailure("project_identity_changed", 409)
+			}
+			if bound == "" || bound == root {
 				bound = record.ProjectKey
 			}
 		}
@@ -714,6 +722,19 @@ func (s *Store) timelineRemoteOf(root string) timelineRemote {
 	return timelineRemote{asked: true, raw: raw, err: err}
 }
 
+// timelinePathKeyGainedRemote reports whether stored is the path key a root's
+// works were bound to before the root had a remote, and resolved is the remote
+// key the root has now. The opposite direction stays a change of identity.
+func timelinePathKeyGainedRemote(stored, resolved, root string) bool {
+	return stored == root && resolved != "" && !filepath.IsAbs(resolved)
+}
+
+// timelineKeysMatch reports whether two stored keys bound to one root name the
+// same project.
+func timelineKeysMatch(a, b, root string) bool {
+	return a == b || timelinePathKeyGainedRemote(a, b, root) || timelinePathKeyGainedRemote(b, a, root)
+}
+
 func timelineProjectKey(root, bound string, remote timelineRemote) (string, error) {
 	key := root
 	resolved := false
@@ -734,7 +755,7 @@ func timelineProjectKey(root, bound string, remote timelineRemote) (string, erro
 	if !resolved && bound != "" {
 		key = bound
 	}
-	if bound != "" && bound != key {
+	if bound != "" && bound != key && !timelinePathKeyGainedRemote(bound, key, root) {
 		return "", timelineFailure("project_identity_changed", 409)
 	}
 	return key, nil
@@ -756,6 +777,13 @@ func (s *Store) TimelineCreate(request TimelineCreateSessionRequest) (TimelineSe
 	}
 	effective := timelineEffectiveWorkKey(request)
 	id := timelineSessionKey(key, request.Source, effective)
+	if _, ok := s.timeline[id]; !ok && !filepath.IsAbs(key) {
+		// The tuple may have been created while the root had no remote: that
+		// work keeps its path key and its ID.
+		if old, ok := s.timeline[timelineSessionKey(root, request.Source, effective)]; ok && old.ProjectKey == root {
+			id = old.ID
+		}
+	}
 	digest := timelineDigest("create_session", id, "", request, nil)
 	if old, ok := s.timeline[id]; ok {
 		if old.Session == nil || old.DeletePending {

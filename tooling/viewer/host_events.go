@@ -105,24 +105,24 @@ func (s *Store) timelineHostCandidates(source TimelineSource) ([]timelineHostCan
 	return out, nil
 }
 
-// timelineHostKey is the key of the first candidate, nearest first, that
+// timelineHostKey is the root and key of the first candidate, nearest first, that
 // resolves. When none does it returns the error of the nearest one, the most
 // specific cause. The caller holds s.mu.
-func (s *Store) timelineHostKey(candidates []timelineHostCandidate) (string, error) {
+func (s *Store) timelineHostKey(candidates []timelineHostCandidate) (string, string, error) {
 	var first error
 	for _, c := range candidates {
 		err := c.err
 		if err == nil {
 			var key string
 			if key, err = s.timelineKeyOf(c.candidate); err == nil {
-				return key, nil
+				return c.candidate.root, key, nil
 			}
 		}
 		if first == nil {
 			first = err
 		}
 	}
-	return "", first
+	return "", "", first
 }
 
 func timelineHostMember(v *TimelineSession, source TimelineSource) bool {
@@ -157,9 +157,9 @@ func (s *Store) TimelineHostEvent(e TimelineHostEvent) (TimelineHostEventResult,
 	if err := s.timelineReconcile(); err != nil {
 		return result, err
 	}
-	key := ""
+	root, key := "", ""
 	if projectErr == nil {
-		key, projectErr = s.timelineHostKey(candidates)
+		root, key, projectErr = s.timelineHostKey(candidates)
 	}
 	if e.WorkID != "" {
 		old, ok := s.timeline[e.WorkID]
@@ -172,7 +172,7 @@ func (s *Store) TimelineHostEvent(e TimelineHostEvent) (TimelineHostEventResult,
 		if projectErr != nil {
 			return result, projectErr
 		}
-		if old.ProjectKey != key {
+		if old.ProjectKey != key && !timelinePathKeyGainedRemote(old.ProjectKey, key, root) {
 			return result, timelineFailure("foreign_project", 409)
 		}
 		checked := e
@@ -203,7 +203,7 @@ func (s *Store) TimelineHostEvent(e TimelineHostEvent) (TimelineHostEventResult,
 		old := s.timeline[id]
 		// Only open, unarchived works take an unnamed event: a finished or archived
 		// work is rewritten only when it is named as the session's current one.
-		if id == e.WorkID || old.Session == nil || old.DeletePending || old.ProjectKey != key || timelineTerminal(old.Session) || old.Session.Archived || !timelineHostMember(old.Session, e.Source) {
+		if id == e.WorkID || old.Session == nil || old.DeletePending || old.ProjectKey != key && !timelinePathKeyGainedRemote(old.ProjectKey, key, root) || timelineTerminal(old.Session) || old.Session.Archived || !timelineHostMember(old.Session, e.Source) {
 			continue
 		}
 		status, err := s.timelineHostApply(old, e, op, "", false)
