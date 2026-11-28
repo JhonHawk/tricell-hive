@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -481,8 +482,9 @@ func TestTimelineRuntimeRegisteredNonGitWorkspaceDoesNotBorrowRemote(t *testing.
 }
 
 // A workspace that already holds viewer works keeps its project key when it
-// becomes a Git coordinator repository without a remote, and adding `origin`
-// is reported as an identity change instead of silently rebinding its works.
+// becomes a Git coordinator repository without a remote. Adding `origin` gives
+// new works the remote key while the works bound to the path keep their key and
+// ID: they reopen, replay, take joins and load as before.
 func TestTimelineRuntimeWorkspaceBecomesCoordinatorRepository(t *testing.T) {
 	state := t.TempDir()
 	workspace := filepath.Join(t.TempDir(), "workspace")
@@ -494,28 +496,197 @@ func TestTimelineRuntimeWorkspaceBecomesCoordinatorRepository(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	remote := ""
-	s, err := Open(Options{StateDir: state, GitRemote: func(string) (string, error) { return remote, nil }})
+	remote, remoteErr := "", error(nil)
+	reader := func(string) (string, error) { return remote, remoteErr }
+	s, err := Open(Options{StateDir: state, GitRemote: reader})
 	if err != nil {
 		t.Fatal(err)
 	}
-	request := TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "before", Source: TimelineSource{ProjectRoot: registration.Root, Host: "codex", NativeSessionID: "coordinator-native"}, Title: "Workspace", Summary: "Bound before git init", Tickets: []TimelineTicketInput{}}
+	request := TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "before", Source: TimelineSource{ProjectRoot: registration.Root, Host: "codex", NativeSessionID: "coordinator-native"}, Title: "Workspace", Summary: "Bound before git init", Tickets: []TimelineTicketInput{}, WorkKey: timelineString("coordinator")}
 	response, err := s.TimelineCreate(request)
 	if err != nil || response.Session.ProjectKey != registration.Root {
 		t.Fatal("workspace session not bound to its root", err)
 	}
+	old := response.Session.ViewerSessionID
 	if err = os.MkdirAll(filepath.Join(workspace, ".git"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	request.OperationID = "after-init"
 	response, err = s.TimelineCreate(request)
-	if err != nil || response.Session.ProjectKey != registration.Root {
+	if err != nil || response.Session.ProjectKey != registration.Root || response.Session.ViewerSessionID != old {
 		t.Fatal("git init without a remote changed the project key", err)
 	}
+	pathLink := filepath.Join(t.TempDir(), "path-link")
+	if err = os.Symlink(registration.Root, pathLink); err != nil {
+		t.Fatal(err)
+	}
+	viaPathLink := request
+	viaPathLink.Source.ProjectRoot, viaPathLink.Source.NativeSessionID, viaPathLink.OperationID = pathLink, "path-link-native", "path-link"
+	pathLinked, err := s.TimelineCreate(viaPathLink)
+	if err != nil || pathLinked.Session.ProjectKey != registration.Root {
+		t.Fatal("a path-bound work through an alias:", err)
+	}
 	remote = "https://github.example/team/workspace.git"
-	request.OperationID = "after-origin"
-	_, err = s.TimelineCreate(request)
+	const remoteKey = "github.example/team/workspace"
+	if err = os.Remove(pathLink); err != nil {
+		t.Fatal(err)
+	}
+	create := func(native, op string) TimelineSessionResponse {
+		t.Helper()
+		r := request
+		r.Source.NativeSessionID, r.OperationID = native, op
+		got, err := s.TimelineCreate(r)
+		if err != nil {
+			t.Fatalf("%s: %v", op, err)
+		}
+		return got
+	}
+	fresh := create("fresh-native", "fresh")
+	if fresh.Session.ProjectKey != remoteKey || !*fresh.Created {
+		t.Fatalf("a new work after origin: key %q created %v", fresh.Session.ProjectKey, *fresh.Created)
+	}
+	reopened := create("coordinator-native", "after-origin")
+	if reopened.Session.ViewerSessionID != old || *reopened.Created || reopened.Session.ProjectKey != registration.Root {
+		t.Fatalf("reopening the path-bound work: %s created %v key %q", reopened.Session.ViewerSessionID, *reopened.Created, reopened.Session.ProjectKey)
+	}
+	if replay := create("coordinator-native", "before"); replay.Session.ViewerSessionID != old || !*replay.Created {
+		t.Fatalf("an operation sent before origin did not replay its receipt: %+v", replay)
+	}
+	remoteErr = errors.New("git unavailable")
+	if offline := create("offline-native", "offline"); offline.Session.ProjectKey != remoteKey {
+		t.Fatalf("a Git failure gave a new work the path key: %q", offline.Session.ProjectKey)
+	}
+	remoteErr = nil
+	pending := domainJoin(t, s, old, "next-lead")
+	before := domainCurrent(t, s, old)
+	recover := TimelineRecoverLeadRequest{TimelineNativeOperation: TimelineNativeOperation{SchemaVersion: 3, OperationID: "recover", Actor: TimelineActor{Kind: "local_viewer"}, ExpectedSessionVersion: before.Version, Reason: "Explicit local recovery"}, RequestID: pending}
+	if _, err = s.TimelineV3Operation(old, "recover_lead", "", &recover); err != nil {
+		t.Fatal("recovering the path-bound work after origin:", err)
+	}
+	link := filepath.Join(t.TempDir(), "link")
+	if err = os.Symlink(registration.Root, link); err != nil {
+		t.Fatal(err)
+	}
+	viaLink := request
+	viaLink.Source.ProjectRoot, viaLink.Source.NativeSessionID, viaLink.OperationID = link, "link-native", "link"
+	linked, err := s.TimelineCreate(viaLink)
+	if err != nil || linked.Session.ProjectKey != remoteKey {
+		t.Fatal("a work through an alias after origin:", err)
+	}
+	if err = os.Remove(link); err != nil {
+		t.Fatal(err)
+	}
+	restarted, err := Open(Options{StateDir: state, GitRemote: reader})
+	if err != nil {
+		t.Fatal("a root holding path-bound and remote-bound works failed to load:", err)
+	}
+	if conflicts := restarted.TimelineIdentityConflicts(); len(conflicts) != 0 {
+		t.Fatalf("path-bound and remote-bound works reported as conflicts: %+v", conflicts)
+	}
+	for id, key := range map[string]string{old: registration.Root, pathLinked.Session.ViewerSessionID: registration.Root, fresh.Session.ViewerSessionID: remoteKey, linked.Session.ViewerSessionID: remoteKey} {
+		if v, err := restarted.TimelineGet(id); err != nil || v.ProjectKey != key {
+			t.Fatalf("work %s after restart: key %q, want %q: %v", id, v.ProjectKey, key, err)
+		}
+	}
+	remote = "https://github.example/team/other.git"
+	other := request
+	other.Source.NativeSessionID, other.OperationID = "other-native", "other"
+	_, err = restarted.TimelineCreate(other)
 	requireTimelineCode(t, err, "project_identity_changed")
+	remote = ""
+	_, err = restarted.TimelineCreate(other)
+	requireTimelineCode(t, err, "project_identity_changed")
+}
+
+// A work whose root now resolves another remote than the one it was bound to is
+// loaded with its stored key and listed as a conflict, instead of stopping the
+// load of every other work. New works from that root are still refused.
+func TestTimelineRuntimeOpenIsolatesAWorkWhoseRemoteChanged(t *testing.T) {
+	s, request := newTimelineFixture(t)
+	remote := "https://github.example/team/a.git"
+	s.remote = func(string) (string, error) { return remote, nil }
+	moved := createTimeline(t, s, request)
+	other := filepath.Join(t.TempDir(), "other")
+	if err := os.MkdirAll(filepath.Join(other, ".git"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	state := filepath.Dir(s.Dir())
+	if _, err := RegisterRepository(state, other); err != nil {
+		t.Fatal(err)
+	}
+	second := request
+	second.Source.ProjectRoot, second.OperationID = other, "second"
+	s.remote = func(root string) (string, error) {
+		if root == other || strings.HasSuffix(root, "/other") {
+			return "https://github.example/team/other.git", nil
+		}
+		return remote, nil
+	}
+	kept := createTimeline(t, s, second)
+	remote = "https://github.example/team/b.git"
+	before := stateManifest(t, state)
+	reopened, err := Open(Options{StateDir: state, GitRemote: s.remote})
+	if err != nil {
+		t.Fatal("one work with a changed remote stopped the load:", err)
+	}
+	for id, key := range map[string]string{moved.ViewerSessionID: "github.example/team/a", kept.ViewerSessionID: "github.example/team/other"} {
+		if v, err := reopened.TimelineGet(id); err != nil || v.ProjectKey != key {
+			t.Fatalf("work %s: key %q, want %q: %v", id, v.ProjectKey, key, err)
+		}
+	}
+	conflicts := reopened.TimelineIdentityConflicts()
+	want := []TimelineIdentityConflict{{ViewerSessionID: moved.ViewerSessionID, Title: moved.Title, Root: request.Source.ProjectRoot, StoredKey: "github.example/team/a", CurrentKey: "github.example/team/b"}}
+	if !reflect.DeepEqual(conflicts, want) {
+		t.Fatalf("conflicts %+v, want %+v", conflicts, want)
+	}
+	if !reflect.DeepEqual(before, stateManifest(t, state)) {
+		t.Fatal("isolating the conflict wrote state")
+	}
+	fresh := request
+	fresh.Source.NativeSessionID, fresh.OperationID = "fresh-native", "fresh"
+	_, err = reopened.TimelineCreate(fresh)
+	requireTimelineCode(t, err, "project_identity_changed")
+	sweep := func() {
+		t.Helper()
+		reopened.mu.Lock()
+		err := reopened.timelineMaintainLocked()
+		reopened.mu.Unlock()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	sweep()
+	if conflicts := reopened.TimelineIdentityConflicts(); !reflect.DeepEqual(conflicts, want) {
+		t.Fatalf("a sweep with origin still moved changed the list: %+v", conflicts)
+	}
+	gitDown := reopened.remote
+	reopened.remote = func(string) (string, error) { return "", errors.New("git unavailable") }
+	sweep()
+	if conflicts := reopened.TimelineIdentityConflicts(); !reflect.DeepEqual(conflicts, want) {
+		t.Fatalf("a Git failure during a sweep changed the list: %+v", conflicts)
+	}
+	reopened.remote = gitDown
+	remote = "https://github.example/team/a.git"
+	sweep()
+	if conflicts := reopened.TimelineIdentityConflicts(); len(conflicts) != 0 {
+		t.Fatalf("restoring the previous origin left the conflict listed: %+v", conflicts)
+	}
+	if _, err = reopened.TimelineCreate(fresh); err != nil {
+		t.Fatal("creating after the previous origin was restored:", err)
+	}
+	actor := timelineTestActor(reopened, moved.ViewerSessionID)
+	if _, err = reopened.TimelineAddDocument(moved.ViewerSessionID, TimelineDocumentMetadata{Actor: actor, SchemaVersion: 3, OperationID: "doc", MediaType: "text/markdown"}, []byte("# Evidence\n")); err != nil {
+		t.Fatal(err)
+	}
+	blobs, err := filepath.Glob(filepath.Join(reopened.timelineDir(), moved.ViewerSessionID, "documents", "*"))
+	if err != nil || len(blobs) != 1 {
+		t.Fatal("document blob not found", blobs, err)
+	}
+	if err = os.WriteFile(blobs[0], []byte("tampered"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, err = Open(Options{StateDir: state, GitRemote: s.remote})
+	requireTimelineCode(t, err, "corrupt_artifact")
 }
 
 func TestTimelineRuntimeDirectoryCreationSyncRetries(t *testing.T) {

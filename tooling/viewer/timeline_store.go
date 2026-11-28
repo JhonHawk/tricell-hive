@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -219,6 +220,7 @@ func (s *Store) timelineDurableWrite(path string, raw []byte) error {
 }
 func (s *Store) timelineLoad() error {
 	s.timeline = map[string]*timelineRecord{}
+	s.timelineConflicts = nil
 	if info, err := os.Lstat(s.timelineDir()); err == nil && !info.IsDir() {
 		return timelineFailure("invalid_storage", 500)
 	}
@@ -334,26 +336,26 @@ func (s *Store) timelineLoad() error {
 		if r.Session == nil {
 			continue
 		}
-		sources := []TimelineSource{r.Source}
-		for _, root := range r.Roots {
-			source := r.Source
-			source.ProjectRoot = root
-			sources = append(sources, source)
-		}
-		for _, p := range r.Session.Producers {
-			sources = append(sources, p.Source)
-		}
-		for _, p := range r.Session.PendingJoinRequests {
-			sources = append(sources, p.Source)
-		}
-		for _, source := range sources {
+		var conflict *TimelineIdentityConflict
+		for _, source := range timelineRecordSources(r) {
 			key, err := s.timelineRestoredProject(r, source)
+			if timelineIdentityChanged(err) {
+				// The repository moved, not the store: keep the work and its key,
+				// and keep checking its other sources and blobs.
+				if conflict == nil {
+					conflict = s.timelineConflictOf(r, source)
+				}
+				continue
+			}
 			if err != nil {
 				return err
 			}
 			if err = ValidateTimelineResolvedProject(*r.Session, source, key); err != nil {
 				return err
 			}
+		}
+		if conflict != nil {
+			s.timelineConflicts = append(s.timelineConflicts, *conflict)
 		}
 		// A durable pending delete may already have removed some blobs.
 		if r.DeletePending {
@@ -370,16 +372,99 @@ func (s *Store) timelineLoad() error {
 			}
 		}
 	}
+	sort.Slice(s.timelineConflicts, func(i, j int) bool {
+		return s.timelineConflicts[i].ViewerSessionID < s.timelineConflicts[j].ViewerSessionID
+	})
 	s.timelinePublish()
 	return nil
+}
+
+func timelineRecordSources(r *timelineRecord) []TimelineSource {
+	sources := []TimelineSource{r.Source}
+	for _, root := range r.Roots {
+		source := r.Source
+		source.ProjectRoot = root
+		sources = append(sources, source)
+	}
+	for _, p := range r.Session.Producers {
+		sources = append(sources, p.Source)
+	}
+	for _, p := range r.Session.PendingJoinRequests {
+		sources = append(sources, p.Source)
+	}
+	return sources
+}
+
+func timelineIdentityChanged(err error) bool {
+	var failure *TimelineError
+	return errors.As(err, &failure) && failure.Code == "project_identity_changed"
+}
+
+func (s *Store) timelineConflictOf(r *timelineRecord, source TimelineSource) *TimelineIdentityConflict {
+	return &TimelineIdentityConflict{ViewerSessionID: r.ID, Title: r.Session.Title, Root: source.ProjectRoot, StoredKey: r.ProjectKey, CurrentKey: s.timelineCurrentKey(source)}
+}
+
+// timelineRecheckConflicts drops a listed work once the root it conflicted on
+// resolves, on its own, to the work's stored key again, such as after the
+// previous origin is restored, and no other source of the work resolves to
+// another key. A root that cannot be resolved now, such as when Git fails,
+// keeps the work listed. It publishes the list. The caller holds s.mu.
+func (s *Store) timelineRecheckConflicts() {
+	kept := []TimelineIdentityConflict{}
+	for _, listed := range s.timelineConflicts {
+		r, ok := s.timeline[listed.ViewerSessionID]
+		if !ok || r.Session == nil {
+			continue
+		}
+		var still *TimelineIdentityConflict
+		for _, source := range timelineRecordSources(r) {
+			current := s.timelineCurrentKey(source)
+			if current == "" && source.ProjectRoot == listed.Root || current != "" && current != r.ProjectKey {
+				still = &TimelineIdentityConflict{ViewerSessionID: r.ID, Title: r.Session.Title, Root: source.ProjectRoot, StoredKey: r.ProjectKey, CurrentKey: current}
+				if current == "" {
+					still.CurrentKey = listed.CurrentKey
+				}
+				break
+			}
+		}
+		if still != nil {
+			kept = append(kept, *still)
+		}
+	}
+	s.timelineConflicts = kept
+	s.viewMu.Lock()
+	s.timelinePublishedConflicts = append([]TimelineIdentityConflict(nil), kept...)
+	s.viewMu.Unlock()
+}
+
+// timelineCurrentKey is the key a source's root resolves to on its own, without
+// the stored works that bind it: its remote, or its path. It is empty when the
+// root cannot be located.
+func (s *Store) timelineCurrentKey(source TimelineSource) string {
+	registry, err := readRegistry(s.vdir)
+	if err != nil {
+		return ""
+	}
+	c, err := s.timelineLocate(registry, source.ProjectRoot)
+	if err != nil {
+		return ""
+	}
+	key, err := timelineProjectKey(c.root, "", c.remote)
+	if err != nil {
+		return ""
+	}
+	return key
 }
 
 // timelineRestoredProject is load-only: an unavailable original path cannot
 // revoke a previously validated durable binding. New publications still use
 // timelineProject and require a currently resolvable, registered source root.
 func (s *Store) timelineRestoredProject(record *timelineRecord, source TimelineSource) (string, error) {
-	_, key, _, err := s.timelineProject(source)
+	root, key, _, err := s.timelineProject(source)
 	if err == nil {
+		if timelinePathKeyGainedRemote(record.ProjectKey, key, root) {
+			return record.ProjectKey, nil
+		}
 		return key, nil
 	}
 	var failure *TimelineError
@@ -412,7 +497,7 @@ func (s *Store) timelineRestoredProject(record *timelineRecord, source TimelineS
 		canonicalBound = true
 		for _, other := range s.timeline {
 			for _, root := range other.Roots {
-				if root == repo.Root && other.ProjectKey != record.ProjectKey {
+				if root == repo.Root && !timelineKeysMatch(other.ProjectKey, record.ProjectKey, repo.Root) {
 					return "", timelineFailure("project_identity_changed", 409)
 				}
 			}
@@ -426,7 +511,7 @@ func (s *Store) timelineRestoredProject(record *timelineRecord, source TimelineS
 		if resolveErr != nil {
 			return "", resolveErr
 		}
-		if canonicalKey != record.ProjectKey {
+		if canonicalKey != record.ProjectKey && !timelinePathKeyGainedRemote(record.ProjectKey, canonicalKey, repo.Root) {
 			return "", timelineFailure("project_identity_changed", 409)
 		}
 	}
@@ -434,6 +519,34 @@ func (s *Store) timelineRestoredProject(record *timelineRecord, source TimelineS
 		return "", timelineFailure("project_identity_unavailable", 409)
 	}
 	return record.ProjectKey, nil
+}
+
+// TimelineIdentityConflict is a work loaded with a stored project key that the
+// root it was published from no longer resolves to, such as after that
+// repository's origin moved to another remote.
+type TimelineIdentityConflict struct {
+	ViewerSessionID string
+	Title           string
+	Root            string
+	StoredKey       string
+	CurrentKey      string
+}
+
+// IndexError is the conflict as the index reports it: the root it came from and
+// what to do about it.
+func (c TimelineIdentityConflict) IndexError() IngestError {
+	now := "no longer resolves to it"
+	if c.CurrentKey != "" {
+		now = "now resolves " + c.CurrentKey
+	}
+	return IngestError{Code: "project_identity_changed", Path: c.Root, Reason: fmt.Sprintf("work %s %q keeps project %s; %s %s, so new works, reopening, joins and host events from it are refused. Restore the previous origin to use this root again.", c.ViewerSessionID, c.Title, c.StoredKey, c.Root, now)}
+}
+
+// TimelineIdentityConflicts lists the works kept apart, as last published.
+func (s *Store) TimelineIdentityConflicts() []TimelineIdentityConflict {
+	s.viewMu.RLock()
+	defer s.viewMu.RUnlock()
+	return append([]TimelineIdentityConflict(nil), s.timelinePublishedConflicts...)
 }
 
 func (s *Store) timelineReconcile() error {
@@ -465,6 +578,7 @@ func (s *Store) timelinePublish() {
 		s.timelineOwned[id] = true
 	}
 	s.timelineIndex = entries
+	s.timelinePublishedConflicts = append([]TimelineIdentityConflict(nil), s.timelineConflicts...)
 	s.viewMu.Unlock()
 }
 func (s *Store) TimelineIndex() []TimelineAPIIndexEntry {
@@ -679,15 +793,20 @@ func (s *Store) timelineKeyOf(c timelineLocated) (string, error) {
 }
 
 // timelineBoundKey is the project key the stored works that use this root already
-// carry. It reads the store's records, so the caller holds s.mu.
+// carry. When works bound to the root's path and works bound to its remote both
+// use it, the remote key is the bound one, so a Git failure does not give a new
+// work the path key once a work is bound to the remote. It reads the store's records, so the caller holds s.mu.
 func (s *Store) timelineBoundKey(root string) (string, error) {
 	bound := ""
 	for _, record := range s.timeline {
 		for _, alias := range record.Roots {
-			if alias == root {
-				if bound != "" && bound != record.ProjectKey {
-					return "", timelineFailure("project_identity_changed", 409)
-				}
+			if alias != root {
+				continue
+			}
+			if bound != "" && !timelineKeysMatch(bound, record.ProjectKey, root) {
+				return "", timelineFailure("project_identity_changed", 409)
+			}
+			if bound == "" || bound == root {
 				bound = record.ProjectKey
 			}
 		}
@@ -714,6 +833,19 @@ func (s *Store) timelineRemoteOf(root string) timelineRemote {
 	return timelineRemote{asked: true, raw: raw, err: err}
 }
 
+// timelinePathKeyGainedRemote reports whether stored is the path key a root's
+// works were bound to before the root had a remote, and resolved is the remote
+// key the root has now. The opposite direction stays a change of identity.
+func timelinePathKeyGainedRemote(stored, resolved, root string) bool {
+	return stored == root && resolved != "" && !filepath.IsAbs(resolved)
+}
+
+// timelineKeysMatch reports whether two stored keys bound to one root name the
+// same project.
+func timelineKeysMatch(a, b, root string) bool {
+	return a == b || timelinePathKeyGainedRemote(a, b, root) || timelinePathKeyGainedRemote(b, a, root)
+}
+
 func timelineProjectKey(root, bound string, remote timelineRemote) (string, error) {
 	key := root
 	resolved := false
@@ -734,7 +866,7 @@ func timelineProjectKey(root, bound string, remote timelineRemote) (string, erro
 	if !resolved && bound != "" {
 		key = bound
 	}
-	if bound != "" && bound != key {
+	if bound != "" && bound != key && !timelinePathKeyGainedRemote(bound, key, root) {
 		return "", timelineFailure("project_identity_changed", 409)
 	}
 	return key, nil
@@ -756,6 +888,13 @@ func (s *Store) TimelineCreate(request TimelineCreateSessionRequest) (TimelineSe
 	}
 	effective := timelineEffectiveWorkKey(request)
 	id := timelineSessionKey(key, request.Source, effective)
+	if _, ok := s.timeline[id]; !ok && !filepath.IsAbs(key) {
+		// The tuple may have been created while the root had no remote: that
+		// work keeps its path key and its ID.
+		if old, ok := s.timeline[timelineSessionKey(root, request.Source, effective)]; ok && old.ProjectKey == root {
+			id = old.ID
+		}
+	}
 	digest := timelineDigest("create_session", id, "", request, nil)
 	if old, ok := s.timeline[id]; ok {
 		if old.Session == nil || old.DeletePending {

@@ -469,6 +469,71 @@ func TestViewRetentionIsManualAndTTLIsAnUnknownFlag(t *testing.T) {
 	f.mustView("stop")
 }
 
+// A work whose repository's origin moved to another remote does not stop the
+// viewer: start names it, the index carries it as an error and status lists it.
+func TestViewStartReportsAWorkWhoseRemoteChanged(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git is not available")
+	}
+	f := newViewFixture(t)
+	repo := newViewRepo(t)
+	if err := os.RemoveAll(filepath.Join(repo, ".git")); err != nil {
+		t.Fatal(err)
+	}
+	git := func(args ...string) {
+		t.Helper()
+		if out, err := exec.Command("git", append([]string{"-C", repo}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	git("init", "-q")
+	git("remote", "add", "origin", "https://github.com/acme/a.git")
+	f.mustView("register", "--dir", repo)
+	store, err := viewer.Open(viewer.Options{StateDir: f.stateDir, GitRemote: viewGitRemote(newGitRunner())})
+	if err != nil {
+		t.Fatal(err)
+	}
+	created, err := store.TimelineCreate(viewer.TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "create", Source: viewer.TimelineSource{ProjectRoot: repo, Host: "codex", NativeSessionID: "native"}, Title: "Moved work", Summary: "Bound to the first remote", Tickets: []viewer.TimelineTicketInput{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := created.Session.ViewerSessionID
+	git("remote", "set-url", "origin", "https://github.com/acme/b.git")
+
+	out := f.mustView("start")
+	for _, want := range []string{id, "Moved work", "github.com/acme/a", "github.com/acme/b", "Restore the previous origin"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("start output lacks %q:\n%s", want, out)
+		}
+	}
+	code, body := f.get("/api/index", true)
+	var index struct {
+		TimelineSessions []viewer.TimelineAPIIndexEntry `json:"timeline_sessions"`
+		Errors           []viewer.IngestError           `json:"errors"`
+	}
+	if code != 200 || json.Unmarshal(body, &index) != nil || len(index.TimelineSessions) != 1 || len(index.Errors) != 1 {
+		t.Fatalf("index %d %s", code, body)
+	}
+	if e := index.Errors[0]; e.Code != "project_identity_changed" || e.Path != repo || !strings.Contains(e.Reason, id) {
+		t.Fatalf("index error %+v", e)
+	}
+	var status struct {
+		Errors            int `json:"errors"`
+		IdentityConflicts []struct {
+			Root   string `json:"root"`
+			Reason string `json:"reason"`
+		} `json:"identity_conflicts"`
+	}
+	statusOut := f.mustView("status")
+	if err := json.Unmarshal([]byte(statusOut), &status); err != nil || status.Errors != 1 || len(status.IdentityConflicts) != 1 {
+		t.Fatalf("status %s: %v", statusOut, err)
+	}
+	if c := status.IdentityConflicts[0]; c.Root != repo || !strings.Contains(c.Reason, id) || !strings.Contains(c.Reason, "github.com/acme/a") || !strings.Contains(c.Reason, "github.com/acme/b") {
+		t.Fatalf("status conflict %+v", c)
+	}
+	f.mustView("stop")
+}
+
 func TestViewServesRegisteredRepositoryEndToEnd(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not available")

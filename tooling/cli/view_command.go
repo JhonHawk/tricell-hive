@@ -344,8 +344,12 @@ func viewStart(p viewPaths, f viewFlags, w io.Writer, deps viewDeps) error {
 	deadline := time.Now().Add(viewStartTimeout)
 	for {
 		if info, err := readServerInfo(p.info); err == nil && (pid <= 0 || info.PID == pid) && viewHealth(info, p) == nil {
-			if index, readErr := viewIndex(info); readErr == nil && len(index.TimelineSessions) == 0 {
+			index, readErr := viewIndex(info)
+			if readErr == nil && len(index.TimelineSessions) == 0 {
 				fmt.Fprintln(w, "Viewer v3 starts empty; previous viewer data is not imported.")
+			}
+			for _, e := range viewIdentityConflicts(index) {
+				fmt.Fprintf(w, "Identity conflict: %s\n", e.Reason)
 			}
 			if !f.portSet && info.Port != viewDefaultPort {
 				fmt.Fprintf(w, "The default port %d is busy, so the viewer took a free port.\n", viewDefaultPort)
@@ -565,6 +569,9 @@ func viewStatus(p viewPaths, w io.Writer) error {
 		if idx, err := viewIndex(info); err == nil {
 			out["protocol_version"] = idx.ProtocolVersion
 			out["repositories"], out["timeline_sessions"], out["errors"], out["retention"] = len(idx.Repositories), len(idx.TimelineSessions), len(idx.Errors), idx.Retention
+			if conflicts := viewIdentityConflicts(idx); len(conflicts) > 0 {
+				out["identity_conflicts"] = conflicts
+			}
 		} else {
 			out["problem"] = "viewer index is incompatible or unavailable; update client and viewer together for protocol v3"
 		}
@@ -579,6 +586,23 @@ func viewStatus(p viewPaths, w io.Writer) error {
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(out)
+}
+
+// viewIdentityConflictEntry is one work the viewer loaded with a project key its
+// root no longer resolves to.
+type viewIdentityConflictEntry struct {
+	Root   string `json:"root"`
+	Reason string `json:"reason"`
+}
+
+func viewIdentityConflicts(index viewIndexSnapshot) []viewIdentityConflictEntry {
+	var out []viewIdentityConflictEntry
+	for _, e := range index.Errors {
+		if e.Code == "project_identity_changed" {
+			out = append(out, viewIdentityConflictEntry{Root: e.Path, Reason: e.Reason})
+		}
+	}
+	return out
 }
 
 // viewIndex reads the existing authenticated index without opening a Store.

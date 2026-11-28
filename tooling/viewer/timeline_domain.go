@@ -118,6 +118,9 @@ func (s *Store) timelineBind(r *timelineRecord, source TimelineSource) error {
 	if err != nil {
 		return err
 	}
+	if timelinePathKeyGainedRemote(r.ProjectKey, key, root) {
+		key = r.ProjectKey
+	}
 	if err = ValidateTimelineResolvedProject(*r.Session, source, key); err != nil {
 		return err
 	}
