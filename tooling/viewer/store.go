@@ -63,11 +63,13 @@ type Store struct {
 	timelineStartupMaintenanceError error
 
 	// viewMu guards the published timeline index.
-	viewMu            sync.RWMutex
-	timeline          map[string]*timelineRecord
-	timelineIndex     []TimelineAPIIndexEntry
-	timelineOwned     map[string]bool
-	timelineUncertain bool
+	viewMu        sync.RWMutex
+	timeline      map[string]*timelineRecord
+	timelineIndex []TimelineAPIIndexEntry
+	// timelinePublishedConflicts is timelineConflicts as the index reads it.
+	timelinePublishedConflicts []TimelineIdentityConflict
+	timelineOwned              map[string]bool
+	timelineUncertain          bool
 	// timelineConflicts are the works the last load kept with a stored project
 	// key their root no longer resolves to.
 	timelineConflicts []TimelineIdentityConflict

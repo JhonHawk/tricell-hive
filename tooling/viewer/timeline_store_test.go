@@ -646,6 +646,19 @@ func TestTimelineRuntimeOpenIsolatesAWorkWhoseRemoteChanged(t *testing.T) {
 	fresh.Source.NativeSessionID, fresh.OperationID = "fresh-native", "fresh"
 	_, err = reopened.TimelineCreate(fresh)
 	requireTimelineCode(t, err, "project_identity_changed")
+	remote = "https://github.example/team/a.git"
+	reopened.mu.Lock()
+	err = reopened.timelineMaintainLocked()
+	reopened.mu.Unlock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if conflicts := reopened.TimelineIdentityConflicts(); len(conflicts) != 0 {
+		t.Fatalf("restoring the previous origin left the conflict listed: %+v", conflicts)
+	}
+	if _, err = reopened.TimelineCreate(fresh); err != nil {
+		t.Fatal("creating after the previous origin was restored:", err)
+	}
 	actor := timelineTestActor(reopened, moved.ViewerSessionID)
 	if _, err = reopened.TimelineAddDocument(moved.ViewerSessionID, TimelineDocumentMetadata{Actor: actor, SchemaVersion: 3, OperationID: "doc", MediaType: "text/markdown"}, []byte("# Evidence\n")); err != nil {
 		t.Fatal(err)
