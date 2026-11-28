@@ -79,6 +79,18 @@ The agent summarizes the plan in the message: the objective with the files and a
 - [Close](/flows/close/) leaves the plan file as local support material and carries the work's record in the pull request body.
 - If something new comes up while the plan is open, the agent classifies it first; see [changes and loops](/flows/overview/).
 
+## Example from a plan summary
+
+A guide update adds export instructions and explains how reviewers use the exported file.
+
+- **AC1** — A reader can find the export command in the setup guide.
+- **AC2** — A reviewer can find the exported file using the review guide.
+- **D1** — Both guides use the same sample filename so readers can follow the file across steps.
+- **T1** — Document the export command and its output in the setup guide (AC1).
+- **T2** — Add the file lookup step to the review guide (AC2).
+
+**Verification for T1 and T2.** Build the documentation once and follow the example across both pages.
+
 ## FAQ
 
 ### Do I need a plan for a small change?

@@ -64,6 +64,15 @@ As the close's situation sets. At the completion point itself the message ends w
 - [Deploy](/flows/deploy/) comes after integration. When it runs, Close follows it as pending, with the cleanup waiting for your request.
 - [Changes and loops](/flows/overview/) shows where the work goes when your answer adds to it.
 
+## Example from a delivery report
+
+The export guide is ready for review. Its examples and documentation build passed on the pull request's latest commit.
+
+**Next**
+
+- **Maintainer:** approve the sample filename before the pull request can merge.
+- **Documentation editor:** update the release notes after the merge.
+
 ## FAQ
 
 ### What if I only want to stop for now?
