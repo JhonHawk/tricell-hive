@@ -30,7 +30,7 @@ Remove the comments a codebase does not need, keep what they recorded where it b
    - **Tautology** (Kill): it repeats what the code, a name or a type already says, including a rule the code expresses as the leaf's Kill sets, or marks a section the structure shows.
    - **Stale** (Kill): it describes code or behavior the current source or its history contradicts, records a past change, or holds commented-out code.
    - **Excuse** (new): it justifies a shortcut, such as a silent catch or a fallback, so the shortcut looks acceptable. Name the shortcut and its consequence.
-   - **Decision record** (Keep): it states a decision the code, its tests and its history do not show, or a constraint from outside the code, confirmed as step 4 of the leaf sets. A Keep that fails that confirmation is Stale.
+   - **Decision record** (Keep): it states a decision the code and its tests do not show, or a constraint from outside the code, confirmed as step 4 of the leaf sets. A Keep that fails that confirmation is Stale.
    - **Constraint** (Constraint): it tells the next editor what not to do; propose the check the leaf's step 5 sets.
    - **Public API contract**: apply the leaf’s public API contract criterion. Keep the contract on the declaration and record the public surface and supporting code or test in its ledger row. Verify these rows even when the inventory flags the block as a public API doc candidate. Configure and test the project’s matcher as [ratchet](references/ratchet.md) sets before deleting any comments.
    - **Directive**: a tool reads it, or it is a license header; it stays. A lint or type-checker suppression among them goes to [suppression review](../hive-core/review/suppression-review.md).

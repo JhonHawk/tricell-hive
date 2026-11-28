@@ -20,13 +20,13 @@ What always runs for each kind of change; each check keeps its own rule, linked 
 - **Try it:** when the user can see or operate the change as its users do, a block headed in the session language, such as **Try it**, written as the steps those users take rather than the commands that run the app, in this form:
 
   ```markdown
-  **Try it**
+  **<Try it, in the session language>**
 
   - **Start:** <the URL as a link while the candidate is served; otherwise one line with the start command, plus the seed command when the walk needs seeded data>
   - **Account:** <its account index row, never a secret>
   - **Steps:**
 
-  **ABC-123 - <description>**
+  **<ticket, if any> - <description>**
   - (<role>, <signed-in state>) <Screen> > <Screen>, <action>, <what the user should see>
   - <next action>, <what the user should see>
   ```

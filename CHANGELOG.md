@@ -24,7 +24,12 @@ raise the minor or the patch version.
   at a section or step that exists. The 4 px grid rule of the diagram
   references and its examples agree. Long sentences that hid a list become
   lists, and soft words that decided an action, such as "relevant", name what
-  they cover. No rule, condition or exception changes.
+  they cover: the environment a reused check reads, the states a UI check
+  exercises, 1 to 100 records for a targeted data update, P3 as a cosmetic or
+  internal defect, and when the work follows no playbook. The rule against
+  offering another provider's review lives whole in delivery-ask. Saved browser
+  states have one home that names the workspace for work across repositories; a
+  close still deletes only the states a work saved in its worktree.
 
 ### Added
 

@@ -4,7 +4,7 @@ Read before verifying, capturing or reviewing a UI change. Read its [Browser too
 
 For a web interface, drive the browser as [Browser tool](#browser-tool) sets. For a native or cross-platform mobile app, drive the device or emulator as [Device tool](ui-verification/device-tool.md) sets and check the device's own screen in place of the widths below.
 
-Exercise changed screens, each state the change adds or alters, such as loading, empty, error, permission, success or disabled, and regions displaced, resized or reflowed, with realistic data, and capture what a person needs to review. Check the widths and themes of a web interface as follows:
+Exercise changed screens, each state the change adds or alters and each existing state of a changed screen, such as loading, empty, error, permission, success or disabled, and regions displaced, resized or reflowed, with realistic data, and capture what a person needs to review. Check the widths and themes of a web interface as follows:
 
 - A web app that runs only on mobile, as [draw](../../create-design/references/draw.md#width) sets: check the 440 px mobile viewport alone and compare it against its approved example.
 - Any other web app: check desktop, and also the mobile viewport of 440 × 956 CSS pixels (iPhone 16 Pro Max) when the application has a responsive layout (a breakpoint or a viewport meta tag) and the diff changes a rendered component, style or layout. Check also each affected supported theme.

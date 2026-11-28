@@ -35,11 +35,13 @@ This applies when a written plan changes during planning or the build: a decisio
 4. Check the revision, then reread it:
    - Before any reread, check what the revision wrote: each step, section, ID, `file:line`, size or limit a written passage names exists and says what the passage claims of it, and no other place in the plan, or in a file the passage cites, states the same thing differently. The reason is that in real sessions from 2026-11-10 to 2026-11-26, 71% of a reread's findings were defects in the revision's own text.
    - A decision the revision takes as an assumption that relaxes a standing rule or overrides a decision of the user goes to the user as a decision, not to the reread.
-   - Then, when the revision changes one of the items below, have the plan's reviewers reread the revised plan as [reviewer brief](../delegation/reviewer-brief.md) sets, and, with several reviewers, those [plan review](../../flow-plan/references/plan-review.md) names:
+   - Then, when the revision changes one of these, have the plan's reviewers reread the revised plan:
      - a contract or an interface;
      - a criterion or a decision;
      - an assumption other than one it takes to the user;
      - an external fact or a verification line.
+
+     They reread it as [reviewer brief](../delegation/reviewer-brief.md) sets, and, with several reviewers, those [plan review](../../flow-plan/references/plan-review.md) names reread it.
    - A reviewer does not reread a revision that applies its own proposal as proposed.
    - While the plan is being planned, it gets at most one reread round: a gap that survives it, or one a later revision brings, goes to the user as a decision in the plan summary. During the build, each such revision gets one reread round, and a surviving gap goes to the user as a decision.
 5. Add one line to the progress section with the revision, its reason and what it invalidated, renew the sandbox copy when there is one, and tell the user in a line.
