@@ -458,7 +458,7 @@ lists where each flow loops.
   boundary, and your validation through a walkthrough, and then integrates it.
   The checks that always run for each kind of change hold in every delivery
   mode, and the final report ends with how to try the change yourself.
-- [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) moves the ticket and writes the work's business rules to it at
+- [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) moves the ticket, posts the work's evidence and writes its business rules to it at
   integration, also when a project declares a later completion point in its
   `Completion` key, and then waits: the cleanup, the viewer close, the inventory of
   the work's support material and the one final report run when you type `/flow-close`,
