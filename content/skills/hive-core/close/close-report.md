@@ -1,6 +1,6 @@
 # Final report, findings and candidates
 
-Read before a final report or classifying a finding. It applies when you write a work item's final report, in any variant below, or classify a finding.
+Read before a final report or classifying a finding.
 
 ## Final report
 
@@ -41,13 +41,25 @@ When the user asks to keep or share the report, or it exceeds one screen, offer 
 | --- | --- | --- | --- |
 | H1 | <what, with its severity> | <where, how it fails, who it affects, the evidence> | <listed, in the ticket proposal, or asked: fix now, ticket or ignore recommended, with its reason> |
 
-Each decision is the one the sorting of [review findings](../review/review-findings.md) gives it. Then ask as a round ([asking a round](../messages/questions.md)) only what that sorting leaves to the user and has no answer yet: the ticket proposal, and each finding asked on its own with the options fix now, ticket and ignore, its recommendation starred, recommending fixing now or a ticket as the ticket rule of [scope changes](../plan/scope-changes.md) sets and ignoring when the finding did not recur or has no impact; a listed finding is acted on only when the user names it. The user may answer all at once or a few at a time, such as "H1 ticket, H2 ignore". A ticket answer creates it as that skill sets; a fix-now answer goes as **Resolve findings now** in [report-endings](../messages/report-endings.md#the-close-footer) sets; an ignore answer is noted in the report. When every finding has an answer, end again with the close's reply block, without the findings replies.
+Each decision is the one the sorting of [review findings](../review/review-findings.md) gives it. Then ask as a round ([asking a round](../messages/questions.md)) only what that sorting leaves to the user and has no answer yet:
+
+- the ticket proposal;
+- each finding asked on its own, with the options fix now, ticket and ignore and its recommendation starred: fixing now or a ticket as the ticket rule of [scope changes](../plan/scope-changes.md) sets, ignoring when the finding did not recur or has no impact.
+
+A listed finding is acted on only when the user names it. The user may answer all at once or a few at a time, such as "H1 ticket, H2 ignore". A ticket answer creates it as create-issue sets; a fix-now answer runs **Resolve findings now** as [report-endings](../messages/report-endings.md#the-close-footer) sets; an ignore answer is noted in the report. When every finding has an answer, end again with the close's reply block, without the findings replies.
 
 **Find the next ticket** runs research's [status report](../../hive-mode/playbooks/ticket-status.md#find-the-next-ticket) for that reply.
 
 ## Findings
 
-A finding is a defect the work found but did not fix: a review finding below P1, a UI defect that was already there, a test that already failed or fails intermittently (keep its error output), or anything else noticed on the way. Each carries one priority by its observable impact, whatever scale its source used: P0 blocks the release, an operation or a core flow for every input; P1 is blocking, one that breaks a criterion, a contract, data, security or the build, and must be fixed before merge; P2 should be fixed but does not block; P3 is minor. A finding against code that classifies free text by patterns that fails only on text the reviewer wrote, not on a file or record that predates the review, is at most P2 unless it breaks a contract, data or the build, or sits at a [security boundary](../build/security-boundaries.md). Each finding takes the decision the sorting of [review findings](../review/review-findings.md) gives it, and one no review sorted, such as one noticed on the way, is sorted the same way at the close. The report gives each finding one line with its decision. Never open a ticket without the user's answer, which unattended delegation gives at its step 5.
+A finding is a defect the work found but did not fix: a review finding below P1, a UI defect that was already there, a test that already failed or fails intermittently (keep its error output), or anything else noticed on the way. Each carries one priority by its observable impact, whatever scale its source used:
+
+- P0 blocks the release, an operation or a core flow for every input.
+- P1 is blocking, one that breaks a criterion, a contract, data, security or the build, and must be fixed before merge.
+- P2 should be fixed but does not block.
+- P3 is cosmetic or internal: it breaks no criterion, contract, data or flow.
+
+A finding against code that classifies free text by patterns that fails only on text the reviewer wrote, not on a file or record that predates the review, is at most P2 unless it breaks a contract, data or the build, or sits at a [security boundary](../build/security-boundaries.md). Each finding takes the decision the sorting of [review findings](../review/review-findings.md) gives it, and one no review sorted, such as one noticed on the way, is sorted the same way at the close. The report gives each finding one line with its decision. Never open a ticket without the user's answer, which unattended delegation gives at its step 5.
 
 ## Candidates
 

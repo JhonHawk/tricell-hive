@@ -8,7 +8,13 @@ Clean up the branches and worktrees of each repository the work touched as [bran
 
 ## Pending work
 
-A work item leaves something open on purpose when a task of its plan runs after the merge, such as a measurement over later CI runs, or a later phase of the same work waits. These are not: a promotion along the declared environments (the ticket's state records it) unless a plan task promotes to an environment where the ticket or the request asks for the change, and a promotion not yet made keeps no branch, worktree, process or support item; this close's own deferred steps, which [flow-close](../../flow-close/SKILL.md) step 7 lists in the close record; and anything of an operational task.
+A work item leaves something open on purpose when a task of its plan runs after the merge, such as a measurement over later CI runs, or a later phase of the same work waits. These are not:
+
+- a promotion along the declared environments (the ticket's state records it), unless a plan task promotes to an environment where the ticket or the request asks for the change;
+- this close's own deferred steps, which [flow-close](../../flow-close/SKILL.md) step 7 lists in the close record;
+- anything of an operational task.
+
+A promotion not yet made keeps no branch, worktree, process or support item.
 
 At step 7, including a pause close, in this order:
 
