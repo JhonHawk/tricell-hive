@@ -1,6 +1,6 @@
 # Answer the reviewers
 
-Read when a pull request's CI wait ends. Read it before the pull request's merge or its `ready` stop.
+Read when a pull request's CI wait ends.
 
 When the CI wait ends, read the pull request's checks once, and its reviews, review comments and comments once through REST with `gh api --paginate` (`repos/<owner>/<repo>/pulls/<n>/reviews`, `.../pulls/<n>/comments` and `.../issues/<n>/comments`), whose `user.type` tells a bot apart; the [state read](../../git-workflow/SKILL.md) gives each item's `user_type`, `on_head` and `after_since`. Treat an assigned or requested reviewer's comments as review findings. Check each against the code before changing anything; push back with evidence when the code already does what a comment asks or the request would break stated behavior, and reply in each thread with what changed or why not. Those replies and the pushes carrying fixes run under the pull request's delivery authorization, when the user asks or when you check its state; never poll for comments.
 
