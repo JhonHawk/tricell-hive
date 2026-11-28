@@ -16,8 +16,6 @@ import (
 // after it.
 var citedLink = regexp.MustCompile(`\[([^\]]*)\]\(((?:skill:)?[^)#\s]+\.md)(#[^)\s]*)?\)(\s*«([^»]+)»|\s+steps?\s+(\d+))?`)
 
-// citedBefore matches «Section» written before "of" or "of the" and the link
-// to the file that holds it.
 var citedBefore = regexp.MustCompile(`«([^»]+)»\s+of\s+(?:the\s+)?\[[^\]]*\]\(((?:skill:)?[^)#\s]+\.md)(?:#[^)\s]*)?\)`)
 
 var stepInLinkText = regexp.MustCompile(`\bsteps?\s+(\d+)\b`)
