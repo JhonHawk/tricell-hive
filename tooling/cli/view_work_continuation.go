@@ -105,10 +105,17 @@ func workContinuation(i *viewWorkIntent, caller viewWorkCommand) []string {
 }
 
 // workLineBreaking is a character that can start a new line or reorder text
-// when shown: a control character, a format character such as a bidi
-// override, or a line or paragraph separator.
+// when shown: a control character, a line or paragraph separator, or a bidi
+// control. Other format characters, such as the zero-width joiners of Persian
+// or Indic names, stay allowed.
 func workLineBreaking(r rune) bool {
-	return unicode.IsControl(r) || unicode.In(r, unicode.Cf, unicode.Zl, unicode.Zp)
+	switch {
+	case unicode.IsControl(r), unicode.In(r, unicode.Zl, unicode.Zp):
+		return true
+	case r >= 0x202A && r <= 0x202E, r >= 0x2066 && r <= 0x2069, r == 0x200E, r == 0x200F, r == 0x061C:
+		return true
+	}
+	return false
 }
 
 // workDisplay shows a stored value on the description line, quoted when it

@@ -290,6 +290,12 @@ func TestWorkEngineFailedOpenNamesTheCommandThatContinuesIt(t *testing.T) {
 	}
 	git("remote", "set-url", "origin", "https://example.com/team/a.git")
 	args := shellArgs(t, line)
+	for n := range args {
+		if args[n] == moved.Change {
+			// Another spelling of the same stored path still finds the open.
+			args[n] += "/"
+		}
+	}
 	var out bytes.Buffer
 	if err = runViewWork(args[3:], &out, strings.NewReader("")); err != nil {
 		t.Fatalf("running %q: %v", line, err)

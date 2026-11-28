@@ -421,6 +421,7 @@ func TestWorkContinuationNamesTheCommandForEachIntent(t *testing.T) {
 	}
 	publication := mustWorkJSON(workPublicationIntent{Command: viewWorkCommand{Action: "publish", Host: "codex", NativeSessionID: "owner", Project: project, Change: project + "/change dir", Key: "K-2", Title: hostile, Summary: hostile, Stage: "verify", Reason: hostile, DocumentKey: "report", Status: "draft", Documents: []string{"report.md", "notes it's.md"}, ExplicitDocuments: true}})
 	newline := viewer.TimelineSource{ProjectRoot: "/tmp/a\n  hive view work fake", Host: "codex", NativeSessionID: "owner"}
+	persian := viewer.TimelineSource{ProjectRoot: "/tmp/پروژه\u200cها/app", Host: "codex", NativeSessionID: "owner"}
 	separator := viewer.TimelineSource{ProjectRoot: "/tmp/a\u2028  hive view work fake\u202e", Host: "codex", NativeSessionID: "owner"}
 	work := strings.Repeat("a", 64)
 	frozen := []viewWorkStep{{Method: "POST", Path: "/x", Attempted: true}}
@@ -446,6 +447,8 @@ func TestWorkContinuationNamesTheCommandForEachIntent(t *testing.T) {
 			append(append([]string{"hive", "view", "work", "resume"}, identity...), "--work-id", work), nil, false},
 		{"a project with a line separator in the command", viewWorkIntent{ID: "p10", Action: "open", State: "needs_reconciliation", Source: separator, Context: mustWorkJSON(viewWorkOpenContext{Binding: viewWorkBinding{Key: "K-4", Project: separator.ProjectRoot, Source: separator}}), Steps: frozen}, owner,
 			nil, []string{"control character: no command is printed"}, false},
+		{"a project with a zero-width non-joiner", viewWorkIntent{ID: "p11", Action: "open", State: "needs_reconciliation", Source: persian, Context: mustWorkJSON(viewWorkOpenContext{Binding: viewWorkBinding{Key: "K-5", Project: persian.ProjectRoot, Source: persian}}), Steps: frozen}, owner,
+			append(append([]string{"hive", "view", "work", "open"}, identity...), "--project", persian.ProjectRoot, "--key", "K-5", "--title", "Resume", "--summary", "Resume"), nil, false},
 		{"a project with a newline in the command", viewWorkIntent{ID: "p9", Action: "open", State: "needs_reconciliation", Source: newline, Context: mustWorkJSON(viewWorkOpenContext{Binding: viewWorkBinding{Key: "K-3", Project: newline.ProjectRoot, Source: newline}}), Steps: frozen}, owner,
 			nil, []string{"control character: no command is printed"}, false},
 		{"evidence of a work", viewWorkIntent{ID: "p4", Action: "evidence", WorkID: work, State: "needs_reconciliation", Source: source, Steps: frozen}, owner,
@@ -474,8 +477,12 @@ func TestWorkContinuationNamesTheCommandForEachIntent(t *testing.T) {
 				}
 			} else if got := shellArgs(t, line); !reflect.DeepEqual(got, tc.want) {
 				t.Fatalf("command runs\n%q\nwant\n%q", got, tc.want)
-			} else if _, err := parseViewWorkCommand(got[3:], strings.NewReader("")); strings.Contains(strings.Join(lines, "\n"), "add --reason") != (err != nil) {
-				t.Fatalf("the printed command parses with %v; only an archive without its reason must not", err)
+			} else if strings.Contains(strings.Join(lines, "\n"), "add --reason") {
+				if _, err := parseViewWorkCommand(append(got[3:], "--reason", "Archived by the user"), strings.NewReader("")); err != nil {
+					t.Fatalf("the archive command with its reason does not parse: %v", err)
+				}
+			} else if _, err := parseViewWorkCommand(got[3:], strings.NewReader("")); err != nil {
+				t.Fatalf("the printed command does not parse: %v", err)
 			}
 			if strings.Contains(strings.Join(lines, "\n"), "touch") {
 				t.Fatalf("stored free text reached the message: %q", lines)

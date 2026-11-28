@@ -45,6 +45,18 @@ type viewWorkEngine struct {
 // noWorkScope is the scope of a read-only command, which takes no lock.
 const noWorkScope = "-"
 
+// workCleanAbs is a path's absolute clean spelling, without resolving it, for
+// comparing a typed path with one a pending intent stored; "" stays "".
+func workCleanAbs(path string) string {
+	if path == "" {
+		return ""
+	}
+	if abs, err := filepath.Abs(path); err == nil {
+		return filepath.Clean(abs)
+	}
+	return path
+}
+
 func canonicalWorkDir(path string) (string, error) {
 	p, err := filepath.Abs(path)
 	if err != nil {
@@ -477,7 +489,7 @@ func (e *viewWorkEngine) open(c viewWorkCommand) (viewer.TimelineSession, error)
 			continue
 		}
 		var original viewWorkOpenContext
-		if json.Unmarshal(i.Context, &original) == nil && original.Binding.Key == c.Key && original.Binding.Project == c.Project && original.Binding.Change == c.Change {
+		if json.Unmarshal(i.Context, &original) == nil && original.Binding.Key == c.Key && original.Binding.Project == workCleanAbs(c.Project) && original.Binding.Change == workCleanAbs(c.Change) {
 			return e.completeOpen(c, i)
 		}
 	}
@@ -597,7 +609,7 @@ func (e *viewWorkEngine) completeOpen(c viewWorkCommand, i *viewWorkIntent) (vie
 		return r.Session, workStateError("invalid_journal")
 	}
 	c.Change, c.Project = b.Change, b.Project
-	if _, err := canonicalWorkDir(c.Change); c.Change != "" && err != nil {
+	if _, err := os.Lstat(c.Change); c.Change != "" && errors.Is(err, os.ErrNotExist) {
 		// The change folder is gone, as after its worktree's close: the work
 		// is created without a binding to it.
 		c.Change = ""
