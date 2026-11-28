@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"tricell-hive/tooling/management"
@@ -376,5 +378,132 @@ func TestWorkFrozenOpenReservationCoversItsResponseAndBinding(t *testing.T) {
 	}
 	if grown := len(after) - len(before); size+grown > reserved {
 		t.Fatalf("the open holds %d bytes and completing it adds %d, beyond its reservation of %d", size, grown, reserved)
+	}
+}
+
+// shellArgs runs one printed command line through sh with hive replaced by a
+// function that prints its arguments, so the test sees exactly what a shell
+// would pass, and that the line runs nothing else.
+func shellArgs(t *testing.T, line string) []string {
+	t.Helper()
+	out, err := exec.Command("sh", "-c", `hive() { for a do printf '%s\0' "$a"; done; }; `+line).Output()
+	if err != nil {
+		t.Fatalf("sh %q: %v", line, err)
+	}
+	return append([]string{"hive"}, strings.Split(strings.TrimSuffix(string(out), "\x00"), "\x00")...)
+}
+
+// commandLine is the one line of a continuation that is a command.
+func commandLine(t *testing.T, lines []string) string {
+	t.Helper()
+	found := ""
+	for _, l := range lines {
+		if strings.HasPrefix(l, "  hive ") {
+			if found != "" {
+				t.Fatalf("two command lines: %q", lines)
+			}
+			found = strings.TrimPrefix(l, "  ")
+		}
+	}
+	return found
+}
+
+func TestWorkContinuationNamesTheCommandForEachIntent(t *testing.T) {
+	hostile := "it's $(touch /tmp/hive-pwned) `id`\nsecond line"
+	project := "/tmp/a project/it's"
+	source := viewer.TimelineSource{ProjectRoot: project, Host: "codex", NativeSessionID: "owner"}
+	openContext := func(change string) json.RawMessage {
+		key := "K-1"
+		req, _ := json.Marshal(viewer.TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "op-x", Source: source, WorkKey: &key, Title: hostile, Summary: hostile, Tickets: []viewer.TimelineTicketInput{}})
+		return mustWorkJSON(viewWorkOpenContext{Binding: viewWorkBinding{Key: key, Project: project, Change: change, Source: source}, Request: req})
+	}
+	publication := mustWorkJSON(workPublicationIntent{Command: viewWorkCommand{Action: "publish", Host: "codex", NativeSessionID: "owner", Project: project, Change: project + "/change dir", Key: "K-2", Title: hostile, Summary: hostile, Stage: "plan", Reason: hostile, DocumentKey: "plan", Status: "draft"}})
+	work := strings.Repeat("a", 64)
+	frozen := []viewWorkStep{{Method: "POST", Path: "/x", Attempted: true}}
+	rejected := []viewWorkStep{{Method: "POST", Path: "/x", Attempted: true, Rejection: "version_conflict"}}
+	owner := viewWorkCommand{Host: "codex", NativeSessionID: "owner"}
+	other := viewWorkCommand{Host: "grok", NativeSessionID: "someone", Options: management.Options{StateDir: "/tmp/state dir"}}
+	identity := []string{"--host", "codex", "--native-session-id", "owner"}
+	for _, tc := range []struct {
+		name    string
+		intent  viewWorkIntent
+		caller  viewWorkCommand
+		want    []string
+		notes   []string
+		foreign bool
+	}{
+		{"open with change", viewWorkIntent{ID: "p1", Action: "open", State: "needs_reconciliation", Source: source, Context: openContext(project + "/change dir"), Steps: frozen}, owner,
+			append(append([]string{"hive", "view", "work", "open"}, identity...), "--project", project, "--change", project+"/change dir", "--key", "K-1", "--title", "it's $(touch /tmp/hive-pwned) `id` second line", "--summary", "it's $(touch /tmp/hive-pwned) `id` second line"), []string{"cannot be discarded"}, false},
+		{"open from capture", viewWorkIntent{ID: "p2", Action: "open", State: "needs_reconciliation", Source: source, Context: openContext(""), Steps: frozen}, owner,
+			append(append([]string{"hive", "view", "work", "open"}, identity...), "--project", project, "--key", "K-1", "--title", "it's $(touch /tmp/hive-pwned) `id` second line", "--summary", "it's $(touch /tmp/hive-pwned) `id` second line"), nil, false},
+		{"publish before its work", viewWorkIntent{ID: "p3", Action: "publish", State: "uploading", Source: source, Context: publication}, owner,
+			append(append([]string{"hive", "view", "work", "publish"}, identity...), "--project", project, "--change", project+"/change dir", "--key", "K-2", "--title", "it's $(touch /tmp/hive-pwned) `id` second line", "--summary", "it's $(touch /tmp/hive-pwned) `id` second line", "--stage", "plan", "--reason", "it's $(touch /tmp/hive-pwned) `id` second line", "--document-key", "plan", "--status", "draft"), nil, false},
+		{"evidence of a work", viewWorkIntent{ID: "p4", Action: "evidence", WorkID: work, State: "needs_reconciliation", Source: source, Steps: frozen}, owner,
+			append(append([]string{"hive", "view", "work", "resume"}, identity...), "--work-id", work), []string{"cannot be discarded"}, false},
+		{"rejected with a work", viewWorkIntent{ID: "p5", Action: "evidence", WorkID: work, State: "rejected_conflict", Source: source, Steps: rejected}, owner,
+			append(append([]string{"hive", "view", "work", "reconcile"}, identity...), "--work-id", work, "--pending", "p5", "--action", "archive-rejected", "--reason", "<why it is archived>"), nil, false},
+		{"rejected open", viewWorkIntent{ID: "p6", Action: "open", State: "rejected_conflict", Source: source, Context: openContext(""), Steps: rejected}, owner,
+			nil, []string{"no command continues or archives it"}, false},
+		{"another session", viewWorkIntent{ID: "p7", Action: "evidence", WorkID: work, State: "verifying", Source: source, Steps: frozen}, other,
+			append(append([]string{"hive", "view", "work", "resume"}, identity...), "--state-dir", "/tmp/state dir", "--work-id", work), []string{"another session's: give it to the user, do not run it from this session"}, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			lines := workContinuation(&tc.intent, tc.caller)
+			if !strings.HasPrefix(lines[0], tc.intent.ID+": "+tc.intent.Action+", "+tc.intent.State+" · codex session owner · "+project) {
+				t.Fatalf("description %q", lines[0])
+			}
+			line := commandLine(t, lines)
+			if tc.want == nil {
+				if line != "" {
+					t.Fatalf("a command for an intent nothing continues: %q", line)
+				}
+			} else if got := shellArgs(t, line); !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("command runs\n%q\nwant\n%q", got, tc.want)
+			}
+			for _, note := range tc.notes {
+				if !strings.Contains(strings.Join(lines, "\n"), note) {
+					t.Fatalf("lines lack %q: %q", note, lines)
+				}
+			}
+			if marked := strings.Contains(strings.Join(lines, "\n"), "another session's"); marked != tc.foreign {
+				t.Fatalf("another-session marker %v, want %v: %q", marked, tc.foreign, lines)
+			}
+		})
+	}
+	if _, err := os.Stat("/tmp/hive-pwned"); err == nil {
+		t.Fatal("a printed command ran the stored text")
+	}
+}
+
+// publisher_capacity names the intents that hold the journal, with the
+// command of each, the one from another session marked.
+func TestWorkCapacityErrorNamesTheIntentsThatHoldIt(t *testing.T) {
+	q := newQueueCLI(t)
+	dir := filepath.Join(q.f.stateDir, "publisher", "v1")
+	if _, _, err := workPublisherDir(viewWorkCommand{Options: management.Options{Scope: "user", StateDir: q.f.stateDir}}); err != nil {
+		t.Fatal(err)
+	}
+	holder := &viewWorkEngine{state: q.f.stateDir, dir: dir}
+	if err := holder.load(); err != nil {
+		t.Fatal(err)
+	}
+	caller := viewWorkCommand{Host: queueHost, NativeSessionID: "caller", Options: management.Options{StateDir: q.f.stateDir}}
+	blocked := &viewWorkEngine{state: q.f.stateDir, dir: dir, caller: caller}
+	if err := blocked.load(); err != nil {
+		t.Fatal(err)
+	}
+	source := viewer.TimelineSource{ProjectRoot: q.project, Host: queueHost, NativeSessionID: "holder"}
+	if _, err := holder.prepareIntent("close", "work-one", source, map[string]string{"n": "1"}); err != nil {
+		t.Fatal(err)
+	}
+	_, err := blocked.prepareIntent("close", "work-two", viewer.TimelineSource{ProjectRoot: q.project, Host: queueHost, NativeSessionID: "caller"}, map[string]string{"n": "2"})
+	if err == nil || !strings.HasPrefix(err.Error(), "publisher_capacity") {
+		t.Fatalf("second 12 MiB intent: %v", err)
+	}
+	text := err.Error()
+	for _, want := range []string{"close, prepared · codex session holder · " + q.project, "another session's: give it to the user", "hive view work resume --host codex --native-session-id holder --state-dir " + shellQuote(q.f.stateDir) + " --work-id work-one"} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("error lacks %q:\n%s", want, text)
+		}
 	}
 }

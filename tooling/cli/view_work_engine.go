@@ -37,6 +37,9 @@ type viewWorkEngine struct {
 	rejectedIDs []string
 	// ended is set when the command closed the work it acted on.
 	ended bool
+	// caller is the command the engine runs, whose identity and state options
+	// the continuation commands of its messages use.
+	caller viewWorkCommand
 }
 
 // noWorkScope is the scope of a read-only command, which takes no lock.
@@ -115,7 +118,7 @@ func openViewWorkEngineQueueing(c viewWorkCommand, queueing bool) (*viewWorkEngi
 	if err != nil {
 		return nil, err
 	}
-	e := &viewWorkEngine{state: state, dir: dir}
+	e := &viewWorkEngine{state: state, dir: dir, caller: c}
 	var peek *viewWorkJournal
 	if err = withWorkJournalLock(dir, func() (err error) { peek, err = readWorkJournal(dir); return }); err != nil {
 		return nil, err
@@ -216,7 +219,7 @@ func (e *viewWorkEngine) prepareIntent(action, id string, source viewer.Timeline
 			return nil, &viewWorkError{Code: "pending_operation", Pending: i.ID, Next: "run hive view work resume with the original native source"}
 		}
 	}
-	if err := e.journal.admitWorkIntent(); err != nil {
+	if err := e.journal.admitWorkIntent(e.caller); err != nil {
 		return nil, err
 	}
 	raw, err := json.Marshal(context)
@@ -233,7 +236,7 @@ func (e *viewWorkEngine) prepareIntent(action, id string, source viewer.Timeline
 				others.Pending = append(others.Pending, p)
 			}
 		}
-		return others.admitWorkIntent()
+		return others.admitWorkIntent(e.caller)
 	})
 	if err != nil {
 		for n, p := range e.journal.Pending {
@@ -284,7 +287,7 @@ func (e *viewWorkEngine) executeStep(i *viewWorkIntent, index int) ([]byte, erro
 		if code == "" {
 			code = "outcome_unknown"
 		}
-		return nil, &viewWorkError{Code: code, Pending: i.ID, Next: "preserve inputs; run hive view work resume with the same native source"}
+		return nil, &viewWorkError{Code: code, Pending: i.ID, Next: "preserve inputs; continue it with:\n" + strings.Join(workContinuation(i, e.caller)[1:], "\n")}
 	}
 	viewWorkCheckpoint("sent")
 	// Validate before recording a successful receipt. A malformed success may

@@ -250,3 +250,59 @@ func TestWorkEnginePublishesThreeMaximumDocumentSets(t *testing.T) {
 		t.Fatal("maximum revisions lost documents")
 	}
 }
+
+// An open whose create the viewer refuses with a code that a later retry can
+// pass names, as its next action, the open command that continues it, and that
+// command, run exactly as printed once the cause is gone, completes the work
+// with the frozen request instead of a second create.
+func TestWorkEngineFailedOpenNamesTheCommandThatContinuesIt(t *testing.T) {
+	f, c := workEngineFixture(t)
+	git := func(args ...string) {
+		t.Helper()
+		if out, err := exec.Command("git", append([]string{"-C", c.Project}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	git("remote", "add", "origin", "https://example.com/team/a.git")
+	engineWorkOpen(t, c)
+	git("remote", "set-url", "origin", "https://example.com/team/b.git")
+	moved := c
+	moved.Change, moved.Key, moved.Title = "", "B", "Work B: it's `moved`"
+	err := executeViewWork(moved, &bytes.Buffer{})
+	if err == nil || !strings.HasPrefix(err.Error(), "project_identity_changed") {
+		t.Fatalf("open after origin moved: %v", err)
+	}
+	line := ""
+	for _, l := range strings.Split(err.Error(), "\n") {
+		if strings.HasPrefix(l, "  hive view work open ") {
+			line = strings.TrimPrefix(l, "  ")
+		}
+	}
+	if line == "" || strings.Contains(err.Error(), "another session's") {
+		t.Fatalf("next action:\n%s", err)
+	}
+	git("remote", "set-url", "origin", "https://example.com/team/a.git")
+	args := shellArgs(t, line)
+	var out bytes.Buffer
+	if err = runViewWork(args[3:], &out, strings.NewReader("")); err != nil {
+		t.Fatalf("running %q: %v", line, err)
+	}
+	var r viewWorkResult
+	if json.Unmarshal(out.Bytes(), &r) != nil || r.WorkID == "" {
+		t.Fatalf("result %s", out.String())
+	}
+	j, err := readWorkJournal(filepath.Join(f.stateDir, "publisher", "v1"))
+	if err != nil || len(j.Pending) != 0 {
+		t.Fatalf("pending after continuing: %v", err)
+	}
+	opens := 0
+	for _, i := range j.History {
+		if i.Action == "open" && i.WorkID == r.WorkID {
+			opens++
+		}
+	}
+	s, err := viewTimelineHTTP(f.info(), "GET", "/api/timeline/sessions/"+r.WorkID, "", nil, viewer.TimelineMaxBody)
+	if err != nil || opens != 1 || !strings.Contains(string(s), `"title":"Work B: it's `+"`moved`"+`"`) {
+		t.Fatalf("one open for the work, with the frozen title: opens %d: %v", opens, err)
+	}
+}

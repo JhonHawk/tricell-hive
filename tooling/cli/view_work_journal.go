@@ -694,7 +694,7 @@ func workIntentReserve(i *viewWorkIntent) int {
 	return len(raw) + workOpenCompletion
 }
 
-func (j *viewWorkJournal) admitWorkIntent() error {
+func (j *viewWorkJournal) admitWorkIntent(caller viewWorkCommand) error {
 	base := *j
 	base.Pending = []*viewWorkIntent{}
 	base.History = append([]*viewWorkIntent{}, j.History...)
@@ -713,7 +713,7 @@ func (j *viewWorkJournal) admitWorkIntent() error {
 		reserved += workIntentReserve(i)
 	}
 	if err != nil || len(raw)+reserved > workJournalLimit {
-		return &viewWorkError{Code: "publisher_capacity", Next: "resume or reconcile an existing pending intent before starting another; retained rejected evidence remains preserved"}
+		return &viewWorkError{Code: "publisher_capacity", Next: workCapacityNext(j.Pending, caller)}
 	}
 	return nil
 }
