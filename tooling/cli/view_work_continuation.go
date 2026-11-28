@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
+	"unicode"
 
 	"tricell-hive/tooling/viewer"
 )
@@ -31,7 +33,7 @@ func workContinuation(i *viewWorkIntent, caller viewWorkCommand) []string {
 	if i.WorkID == "" {
 		subject = "key " + key
 	}
-	lines := []string{fmt.Sprintf("%s: %s, %s · %s session %s · %s · %s", i.ID, i.Action, i.State, i.Source.Host, i.Source.NativeSessionID, project, subject)}
+	lines := []string{fmt.Sprintf("%s: %s, %s · %s session %s · %s · %s", i.ID, i.Action, i.State, i.Source.Host, workDisplay(i.Source.NativeSessionID), workDisplay(project), workDisplay(subject))}
 	base := []string{"hive", "view", "work"}
 	identity := []string{"--host", string(i.Source.Host), "--native-session-id", i.Source.NativeSessionID}
 	if caller.Options.StateDir != "" {
@@ -69,10 +71,23 @@ func workContinuation(i *viewWorkIntent, caller viewWorkCommand) []string {
 		if c.Status != "" {
 			command = append(command, "--status", c.Status)
 		}
+		for _, d := range c.Documents {
+			command = append(command, "--document", d)
+		}
+		if c.ExplicitDocuments {
+			command = append(command, "--explicit-documents")
+		}
 	case i.WorkID != "":
 		command = append(append(append(base, "resume"), identity...), "--work-id", i.WorkID)
 	default:
 		lines = append(lines, "  no command continues it")
+	}
+	for _, arg := range command {
+		if strings.ContainsFunc(arg, unicode.IsControl) {
+			// A quoted control character would split the command over lines.
+			lines, command = append(lines, "  a path or key holds a control character: no command is printed"), nil
+			break
+		}
 	}
 	if command != nil {
 		if string(i.Source.Host) != caller.Host || i.Source.NativeSessionID != caller.NativeSessionID {
@@ -88,6 +103,15 @@ func workContinuation(i *viewWorkIntent, caller viewWorkCommand) []string {
 		lines = append(lines, "  its outcome is unknown, so it cannot be discarded")
 	}
 	return lines
+}
+
+// workDisplay shows a stored value on the description line, quoted when it
+// holds a control character, so it cannot start a line of its own.
+func workDisplay(s string) string {
+	if strings.ContainsFunc(s, unicode.IsControl) {
+		return strconv.Quote(s)
+	}
+	return s
 }
 
 // workOneLine joins text that only has to pass validation into one line.

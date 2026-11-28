@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -417,7 +418,8 @@ func TestWorkContinuationNamesTheCommandForEachIntent(t *testing.T) {
 		req, _ := json.Marshal(viewer.TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "op-x", Source: source, WorkKey: &key, Title: hostile, Summary: hostile, Tickets: []viewer.TimelineTicketInput{}})
 		return mustWorkJSON(viewWorkOpenContext{Binding: viewWorkBinding{Key: key, Project: project, Change: change, Source: source}, Request: req})
 	}
-	publication := mustWorkJSON(workPublicationIntent{Command: viewWorkCommand{Action: "publish", Host: "codex", NativeSessionID: "owner", Project: project, Change: project + "/change dir", Key: "K-2", Title: hostile, Summary: hostile, Stage: "plan", Reason: hostile, DocumentKey: "plan", Status: "draft"}})
+	publication := mustWorkJSON(workPublicationIntent{Command: viewWorkCommand{Action: "publish", Host: "codex", NativeSessionID: "owner", Project: project, Change: project + "/change dir", Key: "K-2", Title: hostile, Summary: hostile, Stage: "verify", Reason: hostile, DocumentKey: "report", Status: "draft", Documents: []string{"report.md", "notes it's.md"}, ExplicitDocuments: true}})
+	newline := viewer.TimelineSource{ProjectRoot: "/tmp/a\n  hive view work fake", Host: "codex", NativeSessionID: "owner"}
 	work := strings.Repeat("a", 64)
 	frozen := []viewWorkStep{{Method: "POST", Path: "/x", Attempted: true}}
 	rejected := []viewWorkStep{{Method: "POST", Path: "/x", Attempted: true, Rejection: "version_conflict"}}
@@ -437,7 +439,11 @@ func TestWorkContinuationNamesTheCommandForEachIntent(t *testing.T) {
 		{"open from capture", viewWorkIntent{ID: "p2", Action: "open", State: "needs_reconciliation", Source: source, Context: openContext(""), Steps: frozen}, owner,
 			append(append([]string{"hive", "view", "work", "open"}, identity...), "--project", project, "--key", "K-1", "--title", "it's $(touch /tmp/hive-pwned) `id` second line", "--summary", "it's $(touch /tmp/hive-pwned) `id` second line"), nil, false},
 		{"publish before its work", viewWorkIntent{ID: "p3", Action: "publish", State: "uploading", Source: source, Context: publication}, owner,
-			append(append([]string{"hive", "view", "work", "publish"}, identity...), "--project", project, "--change", project+"/change dir", "--key", "K-2", "--title", "it's $(touch /tmp/hive-pwned) `id` second line", "--summary", "it's $(touch /tmp/hive-pwned) `id` second line", "--stage", "plan", "--reason", "it's $(touch /tmp/hive-pwned) `id` second line", "--document-key", "plan", "--status", "draft"), nil, false},
+			append(append([]string{"hive", "view", "work", "publish"}, identity...), "--project", project, "--change", project+"/change dir", "--key", "K-2", "--title", "it's $(touch /tmp/hive-pwned) `id` second line", "--summary", "it's $(touch /tmp/hive-pwned) `id` second line", "--stage", "verify", "--reason", "it's $(touch /tmp/hive-pwned) `id` second line", "--document-key", "report", "--status", "draft", "--document", "report.md", "--document", "notes it's.md", "--explicit-documents"), nil, false},
+		{"a project with a newline, not in the command", viewWorkIntent{ID: "p8", Action: "evidence", WorkID: work, State: "verifying", Source: newline, Steps: frozen}, owner,
+			append(append([]string{"hive", "view", "work", "resume"}, identity...), "--work-id", work), nil, false},
+		{"a project with a newline in the command", viewWorkIntent{ID: "p9", Action: "open", State: "needs_reconciliation", Source: newline, Context: mustWorkJSON(viewWorkOpenContext{Binding: viewWorkBinding{Key: "K-3", Project: newline.ProjectRoot, Source: newline}}), Steps: frozen}, owner,
+			nil, []string{"control character: no command is printed"}, false},
 		{"evidence of a work", viewWorkIntent{ID: "p4", Action: "evidence", WorkID: work, State: "needs_reconciliation", Source: source, Steps: frozen}, owner,
 			append(append([]string{"hive", "view", "work", "resume"}, identity...), "--work-id", work), []string{"cannot be discarded"}, false},
 		{"rejected with a work", viewWorkIntent{ID: "p5", Action: "evidence", WorkID: work, State: "rejected_conflict", Source: source, Steps: rejected}, owner,
@@ -449,7 +455,12 @@ func TestWorkContinuationNamesTheCommandForEachIntent(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			lines := workContinuation(&tc.intent, tc.caller)
-			if !strings.HasPrefix(lines[0], tc.intent.ID+": "+tc.intent.Action+", "+tc.intent.State+" · codex session owner · "+project) {
+			for _, l := range lines[1:] {
+				if !strings.HasPrefix(l, "  ") || strings.HasPrefix(l, "  hive ") && strings.Contains(l, "fake") {
+					t.Fatalf("a stored value started a line of its own: %q", lines)
+				}
+			}
+			if tc.intent.Source == source && !strings.HasPrefix(lines[0], tc.intent.ID+": "+tc.intent.Action+", "+tc.intent.State+" · codex session owner · "+project) {
 				t.Fatalf("description %q", lines[0])
 			}
 			line := commandLine(t, lines)
@@ -459,6 +470,8 @@ func TestWorkContinuationNamesTheCommandForEachIntent(t *testing.T) {
 				}
 			} else if got := shellArgs(t, line); !reflect.DeepEqual(got, tc.want) {
 				t.Fatalf("command runs\n%q\nwant\n%q", got, tc.want)
+			} else if _, err := parseViewWorkCommand(got[3:], strings.NewReader("")); err != nil && !strings.Contains(err.Error(), "native identity") {
+				t.Fatalf("the printed command does not parse: %v", err)
 			}
 			for _, note := range tc.notes {
 				if !strings.Contains(strings.Join(lines, "\n"), note) {
@@ -501,9 +514,28 @@ func TestWorkCapacityErrorNamesTheIntentsThatHoldIt(t *testing.T) {
 		t.Fatalf("second 12 MiB intent: %v", err)
 	}
 	text := err.Error()
-	for _, want := range []string{"close, prepared · codex session holder · " + q.project, "another session's: give it to the user", "hive view work resume --host codex --native-session-id holder --state-dir " + shellQuote(q.f.stateDir) + " --work-id work-one"} {
+	for _, want := range []string{"close, prepared · codex session holder · " + q.project, "another session's: give it to the user", "hive view work resume --host codex --native-session-id holder --state-dir " + q.f.stateDir + " --work-id work-one"} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("error lacks %q:\n%s", want, text)
 		}
+	}
+}
+
+// An open reserves 12 MiB until its create is frozen, then what it can still
+// write: the response and binding, or only the binding once the response is
+// stored.
+func TestWorkIntentReserveFollowsWhatAnOpenCanStillWrite(t *testing.T) {
+	i := &viewWorkIntent{ID: "p", Action: "open", State: "prepared", Steps: []viewWorkStep{}}
+	if got := workIntentReserve(i); got != workIntentReservation {
+		t.Fatalf("open before its create is frozen reserves %d", got)
+	}
+	i.Steps = []viewWorkStep{{Method: "POST", Path: "/api/timeline/sessions", Attempted: true}}
+	frozen := workIntentReserve(i)
+	if frozen >= workIntentReservation || frozen < base64.StdEncoding.EncodedLen(viewer.TimelineMaxResponseBody) {
+		t.Fatalf("frozen open reserves %d", frozen)
+	}
+	i.Steps[0].Response = []byte(`{}`)
+	if got := workIntentReserve(i); got >= frozen-base64.StdEncoding.EncodedLen(viewer.TimelineMaxResponseBody)+64 {
+		t.Fatalf("open with its response stored reserves %d, frozen %d", got, frozen)
 	}
 }

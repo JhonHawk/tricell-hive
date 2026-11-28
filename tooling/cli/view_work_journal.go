@@ -678,7 +678,11 @@ const workIntentReservation = 12 << 20
 // workOpenCompletion bounds what completing a frozen open still writes: the
 // create response, which the client reads up to TimelineMaxResponseBody and the
 // journal stores as base64, plus the work ID, the state and the binding.
-var workOpenCompletion = base64.StdEncoding.EncodedLen(viewer.TimelineMaxResponseBody) + 64<<10
+var workOpenCompletion = base64.StdEncoding.EncodedLen(viewer.TimelineMaxResponseBody) + workOpenBinding
+
+// workOpenBinding bounds the work ID, the state and the binding an open writes
+// once its create response is stored.
+const workOpenBinding = 64 << 10
 
 // workIntentReserve is the space a pending intent holds. An open whose single
 // create step is frozen gains no step (completeOpen), so it holds its size plus
@@ -690,6 +694,9 @@ func workIntentReserve(i *viewWorkIntent) int {
 	raw, err := json.Marshal(i)
 	if err != nil {
 		return workIntentReservation
+	}
+	if len(i.Steps[0].Response) > 0 {
+		return len(raw) + workOpenBinding
 	}
 	return len(raw) + workOpenCompletion
 }

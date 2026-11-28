@@ -296,7 +296,7 @@ func (e *viewWorkEngine) executeStep(i *viewWorkIntent, index int) ([]byte, erro
 		r, err := viewer.DecodeTimelineSessionResponse(raw)
 		var request viewer.TimelineCreateSessionRequest
 		if err != nil || json.Unmarshal(s.Body, &request) != nil || r.Session.Source != request.Source || !sameWorkKey(r.Session.WorkKey, request.WorkKey) {
-			return nil, &viewWorkError{Code: "outcome_unknown", Pending: i.ID, Next: "resume the unchanged request"}
+			return nil, &viewWorkError{Code: "outcome_unknown", Pending: i.ID, Next: "resume the unchanged request with:\n" + strings.Join(workContinuation(i, e.caller)[1:], "\n")}
 		}
 		r.ArtifactURLs = nil
 		r.DocumentURLs = nil
@@ -304,7 +304,7 @@ func (e *viewWorkEngine) executeStep(i *viewWorkIntent, index int) ([]byte, erro
 		i.WorkID = r.Session.ViewerSessionID
 	} else {
 		if r, err := viewer.DecodeTimelineOperationResult(raw); err != nil || r.ViewerSessionID != i.WorkID || r.OperationID != workStepOperationID(*s) {
-			return nil, &viewWorkError{Code: "outcome_unknown", Pending: i.ID, Next: "resume the unchanged request"}
+			return nil, &viewWorkError{Code: "outcome_unknown", Pending: i.ID, Next: "resume the unchanged request with:\n" + strings.Join(workContinuation(i, e.caller)[1:], "\n")}
 		}
 	}
 	s.Response = append([]byte(nil), raw...)
