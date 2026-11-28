@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -668,11 +669,30 @@ func validateWorkStoredStep(i *viewWorkIntent, s viewWorkStep) error {
 	return nil
 }
 
-// Each admitted intent reserves 12 MiB: the 2 MiB frozen document set and
+// An admitted intent reserves 12 MiB: the 2 MiB frozen document set and
 // multipart requests (base64 encoded), a maximum 2 MiB create response, and
 // bounded typed receipts. This leaves room to durably record unknown outcomes
 // and acknowledgments even when earlier rejected publications are retained.
 const workIntentReservation = 12 << 20
+
+// workOpenCompletion bounds what completing a frozen open still writes: the
+// create response, which the client reads up to TimelineMaxResponseBody and the
+// journal stores as base64, plus the work ID, the state and the binding.
+var workOpenCompletion = base64.StdEncoding.EncodedLen(viewer.TimelineMaxResponseBody) + 64<<10
+
+// workIntentReserve is the space a pending intent holds. An open whose single
+// create step is frozen gains no step (completeOpen), so it holds its size plus
+// workOpenCompletion; every other intent holds workIntentReservation.
+func workIntentReserve(i *viewWorkIntent) int {
+	if i.Action != "open" || len(i.Steps) != 1 {
+		return workIntentReservation
+	}
+	raw, err := json.Marshal(i)
+	if err != nil {
+		return workIntentReservation
+	}
+	return len(raw) + workOpenCompletion
+}
 
 func (j *viewWorkJournal) admitWorkIntent() error {
 	base := *j
@@ -688,7 +708,11 @@ func (j *viewWorkJournal) admitWorkIntent() error {
 		}
 	}
 	raw, err := json.Marshal(&base)
-	if err != nil || len(raw)+(len(j.Pending)+1)*workIntentReservation > workJournalLimit {
+	reserved := workIntentReservation
+	for _, i := range j.Pending {
+		reserved += workIntentReserve(i)
+	}
+	if err != nil || len(raw)+reserved > workJournalLimit {
 		return &viewWorkError{Code: "publisher_capacity", Next: "resume or reconcile an existing pending intent before starting another; retained rejected evidence remains preserved"}
 	}
 	return nil

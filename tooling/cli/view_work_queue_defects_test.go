@@ -290,3 +290,91 @@ func TestWorkAdmissionReadsTheJournalUnderItsLock(t *testing.T) {
 		t.Fatalf("pending intents: %v", err)
 	}
 }
+
+// frozenOpen leaves, as another session would after a create whose outcome is
+// unknown, one pending open with its create step frozen and attempted.
+func frozenOpen(t *testing.T, e *viewWorkEngine, project, native, key string) *viewWorkIntent {
+	t.Helper()
+	source := viewer.TimelineSource{ProjectRoot: project, Host: queueHost, NativeSessionID: native}
+	req := viewer.TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: workID("op-"), Source: source, WorkKey: &key, Title: "Stuck " + key, Summary: "Create outcome unknown", Tickets: []viewer.TimelineTicketInput{}}
+	raw, err := json.Marshal(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	i, err := e.prepareIntent("open", "", source, viewWorkOpenContext{Binding: viewWorkBinding{Key: key, Project: project, Source: source}, Request: raw})
+	if err != nil {
+		t.Fatalf("freezing an open: %v", err)
+	}
+	if _, err = e.appendStep(i, "POST", "/api/timeline/sessions", "application/json", raw); err != nil {
+		t.Fatal(err)
+	}
+	i.Steps[0].Attempted, i.State = true, "needs_reconciliation"
+	if err = e.save(); err != nil {
+		t.Fatal(err)
+	}
+	return i
+}
+
+// An open whose create was sent and never answered, left by another session,
+// does not stop other sessions from publishing: it can only still write its
+// create response and binding, not the 12 MiB a new intent reserves. Two new
+// intents still do not fit beside it, also when the second one prepares from
+// a journal read before the first was saved.
+func TestWorkAdmissionCountsAFrozenOpenByWhatItCanStillWrite(t *testing.T) {
+	q := newQueueCLI(t)
+	dir := filepath.Join(q.f.stateDir, "publisher", "v1")
+	if _, _, err := workPublisherDir(viewWorkCommand{Options: management.Options{Scope: "user", StateDir: q.f.stateDir}}); err != nil {
+		t.Fatal(err)
+	}
+	engine := func() *viewWorkEngine {
+		e := &viewWorkEngine{state: q.f.stateDir, dir: dir}
+		if err := e.load(); err != nil {
+			t.Fatal(err)
+		}
+		return e
+	}
+	stuck := engine()
+	staleB, staleC := engine(), engine()
+	frozenOpen(t, stuck, q.project, "ended-session", "stuck-key")
+	other := viewer.TimelineSource{ProjectRoot: q.project, Host: queueHost, NativeSessionID: "other-session"}
+	if _, err := staleB.prepareIntent("close", "work-one", other, map[string]string{"n": "1"}); err != nil {
+		t.Fatalf("another session blocked by a frozen open: %v", err)
+	}
+	if _, err := staleC.prepareIntent("close", "work-two", other, map[string]string{"n": "2"}); err == nil || !strings.Contains(err.Error(), "publisher_capacity") {
+		t.Fatalf("a third intent reserved beyond the limit from a stale journal: %v", err)
+	}
+	if j, err := readWorkJournalChecked(dir, false); err != nil || len(j.Pending) != 2 {
+		t.Fatalf("pending intents %d: %v", len(j.Pending), err)
+	}
+}
+
+// What a frozen open reserves covers what completing it writes: the largest
+// create response the client reads, stored as the journal stores it, and the
+// binding that follows.
+func TestWorkFrozenOpenReservationCoversItsResponseAndBinding(t *testing.T) {
+	q := newQueueCLI(t)
+	dir := filepath.Join(q.f.stateDir, "publisher", "v1")
+	if _, _, err := workPublisherDir(viewWorkCommand{Options: management.Options{Scope: "user", StateDir: q.f.stateDir}}); err != nil {
+		t.Fatal(err)
+	}
+	e := &viewWorkEngine{state: q.f.stateDir, dir: dir}
+	if err := e.load(); err != nil {
+		t.Fatal(err)
+	}
+	i := frozenOpen(t, e, q.project, "ended-session", strings.Repeat("k", 200))
+	reserved, size := workIntentReserve(i), len(mustWorkJSON(i))
+	before, err := json.Marshal(e.journal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	i.Steps[0].Response = []byte(strings.Repeat("<", viewer.TimelineMaxResponseBody))
+	i.WorkID, i.State = strings.Repeat("f", 64), "confirmed"
+	e.journal.Bindings = append(e.journal.Bindings, viewWorkBinding{WorkID: i.WorkID, Key: strings.Repeat("k", 200), Project: q.project + strings.Repeat("/p", 1000), Change: q.project + strings.Repeat("/c", 1000), Source: i.Source})
+	after, err := json.Marshal(e.journal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if grown := len(after) - len(before); size+grown > reserved {
+		t.Fatalf("the open holds %d bytes and completing it adds %d, beyond its reservation of %d", size, grown, reserved)
+	}
+}
