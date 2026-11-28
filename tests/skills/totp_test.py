@@ -74,9 +74,11 @@ class TotpTest(unittest.TestCase):
         self.assertEqual((status, out), (0, "287082\n"))
 
     def test_key_as_an_authenticator_shows_it(self):
-        grouped = " ".join(b32(SHA1_SEED).lower()[i : i + 4] for i in range(0, 32, 4)) + "\n"
-        status, out, _ = self.run_at(59, grouped)
-        self.assertEqual((status, out), (0, "287082\n"))
+        groups = [b32(SHA1_SEED).lower()[i : i + 4] for i in range(0, 32, 4)]
+        for grouped in [" ".join(groups) + "\n", "-".join(groups)]:
+            with self.subTest(grouped=grouped):
+                status, out, _ = self.run_at(59, grouped)
+                self.assertEqual((status, out), (0, "287082\n"))
 
     def test_key_without_its_padding(self):
         seed = b"1234567890123"
@@ -88,7 +90,8 @@ class TotpTest(unittest.TestCase):
         self.assertEqual(without_padding, with_padding)
 
     def test_text_that_is_not_a_key_fails_without_echoing_it(self):
-        for text in ["pbpaste | python3 totp.py", "", "otpauth://totp/x?issuer=Example", "ABCDEFGH1"]:
+        hotp = "otpauth://hotp/x?" + urllib.parse.urlencode({"secret": b32(SHA1_SEED), "counter": 1})
+        for text in ["pbpaste | python3 totp.py", "", "otpauth://totp/x?issuer=Example", "ABCDEFGH1", hotp]:
             with self.subTest(text=text):
                 status, out, err = self.run_at(59, text)
                 self.assertEqual(status, 2)
