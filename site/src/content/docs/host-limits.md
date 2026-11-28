@@ -54,8 +54,9 @@ verified.
   session there, and that its isolation checks do not track files a plain shell
   command writes, which stay under your permission and sandboxing settings.
   Hive uses that known gap only to add new entries to the main checkout's
-  `HIVE.local.md` and `ACCOUNTS.md` and to write new local scripts; a change to
-  an existing entry, and any write your settings or the sandbox refuse, the
+  `HIVE.local.md` and `ACCOUNTS.md` and to write new local scripts and
+  second-factor key files; it keeps a saved sign-in state inside the worktree.
+  A change to an existing entry, and any write your settings or the sandbox refuse, the
   agent names in its report instead.
 
 ## Codex

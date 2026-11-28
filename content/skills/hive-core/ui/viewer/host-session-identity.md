@@ -1,6 +1,6 @@
 # Pass the native session identity explicitly
 
-Read only when a `hive view work` command rejects the identity as missing or ambiguous (its error names `--host` and `--native-session-id`). The normal path passes neither flag: the binary reads the host's session variable or the session map that Hive's session hook wrote. The explicit path is the fallback for a host whose hook is not installed, not approved, or not yet running in this session.
+Read only when a `hive view work` command rejects the identity as missing or ambiguous (its error names `--host` and `--native-session-id`), or when [Sign in for the user](../walkthrough.md#sign-in-for-the-user) names its window, which reads the variable the table names as step 1 sets and passes no flag. The normal path passes neither flag: the binary reads the host's session variable or the session map that Hive's session hook wrote. The explicit path is the fallback for a host whose hook is not installed, not approved, or not yet running in this session.
 
 Source: `_support/docs/architecture/host-session-events.md` in the Hive repository, checked 2026-11-04 against the host versions it lists, and 2026-11-06 for Codex and Grok. A fact marked unverified stays so until the installed host's current official documentation confirms it.
 
