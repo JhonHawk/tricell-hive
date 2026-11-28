@@ -13,9 +13,10 @@ Read the platform from what step 3 gathers. With neither code nor sibling frames
 
 ## What the stage may change in the file
 
-- Create frames and sections on the work's page, and local components and variables when the frames need them.
+- Create frames and sections on the app's page, so the work's sections continue that page's own. The app's page is the first that applies: the page holding the most frames of the screen's siblings, the frames step 3 measured; the page holding the most of that app's other screens; a page this work creates, named after the app, never after the work or its ticket. A work whose flows belong to two apps, such as a mobile app and a web portal, draws each app's flow sections on that app's page, and its Assets and Moodboard sections on the page of its first flow.
+- Create local components and variables when the frames need them.
 - Change or delete only what this work created.
-- Never change or delete an existing variable, style, component or page, nor anything of a shared library: return each such change to the user as a decision, as the precedence of [UI criteria](ui-criteria.md#precedence) sets.
+- Never change or delete an existing variable, style, component or page, nor anything of a shared library: return each such change to the user as a decision, as the precedence of [UI criteria](ui-criteria.md#precedence) sets. Adding this work's sections to the app's page does not change that page; renaming, reordering or deleting it, or editing a node on it this work did not create, does.
 
 ## How the frames are drawn
 
