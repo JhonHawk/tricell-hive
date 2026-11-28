@@ -62,10 +62,12 @@ verified.
 
 - **Hive's message formats arrive as developer context.**
   Codex sends `AGENTS.md` and skills as user messages, where a format Hive sets
-  lost to Codex's own formatting. At the start of each main session, and again
-  after a compaction, Hive's `SessionStart` hook prints a short entry that names
-  each format's parts and links the file that sets it; Codex adds it as developer
-  context. Subagents do not receive it. If Codex asks you to review Hive's hook in
+  lost to Codex's own formatting. When a main session starts, is cleared or is
+  compacted, Hive's `SessionStart` hook prints a short entry that names each
+  format's parts and links the file that sets it; Codex adds it as developer
+  context. A resumed or forked session keeps the copy its history already holds,
+  so a session started before you installed or approved the hook gets it at its
+  next compaction. Subagents do not receive it. If Codex asks you to review Hive's hook in
   `/hooks`, approve it for the entry to arrive.
 - **A decision round is asked once, through the waiting card or in the chat in
   full, also in Default mode.**

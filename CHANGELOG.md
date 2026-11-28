@@ -14,7 +14,7 @@ raise the minor or the patch version.
 
 - Codex sessions receive Hive's message formats as developer context: the
   `SessionStart` hook prints a short entry that names each format's parts and
-  links its rule, at a main session's start and after each compaction.
+  links its rule, when a main session starts, is cleared or is compacted.
 - Comment audits and reviews keep caller obligations and observable guarantees
   beside documented public API declarations. The JavaScript and TypeScript
   comment lint recognizes documentation on configured public symbols.
