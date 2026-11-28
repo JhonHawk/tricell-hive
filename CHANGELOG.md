@@ -68,6 +68,8 @@ raise the minor or the patch version.
 
 ### Fixed
 
+- `hive apply --plan` reports the host hook notes, such as Codex asking to
+  approve a new or changed hook in `/hooks`, as `hive update` does.
 - A default of your component library is no longer reported as a finding or
   asked to you when it misses a WCAG threshold. When a change uses a library
   component as the library publishes it, such as its error color, the UX

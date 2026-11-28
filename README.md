@@ -561,7 +561,7 @@ anything or close a work.
 | Host | Registered in | Notes |
 | --- | --- | --- |
 | Claude Code | `~/.claude/settings.json` | Includes native task created/completed. Held back in a folder you have not trusted. |
-| Codex | `~/.codex/hooks.json` | Hive does not write Codex's trust: approve the hook once in `/hooks`. |
+| Codex | `~/.codex/hooks.json` | Hive does not write Codex's trust: approve the hook in `/hooks`, and again after an update that changes it, which `hive update` and `hive apply` say. |
 | Grok Build | `~/.grok/hooks/hive-session-events.json` | Restart open sessions. |
 | Cursor CLI | `~/.cursor/hooks.json` | Verified only in the installed code. |
 | OpenCode V2 | `~/.config/opencode/plugins/hive-events.js` | Event plugin; the context loader stays inactive. |

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -122,5 +123,77 @@ func TestDoctorAndStatusShowTheHookEntriesPerHost(t *testing.T) {
 		if !strings.Contains(text, want) {
 			t.Errorf("the Installation section lacks %q:\n%s", want, text)
 		}
+	}
+}
+
+// The route an agent shell takes, `hive update --out FILE` then `hive apply
+// --plan FILE`, reports the same notes, on stderr, and keeps stdout the result.
+func TestApplyOfASavedUpdateReportsTheHookNotes(t *testing.T) {
+	env := newUpdateEnv(t)
+	writeUpdateCatalog(t, env.repo, skillBody("Preserve evidence.\n"))
+	gitInitLocal(t, env.repo)
+	gitCommitAll(t, env.repo, "init")
+	installDirect(t, env.home, env.stateDir, env.repo, []string{"claude", "codex"})
+	path := filepath.Join(env.home, ".codex", "hooks.json")
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, bytes.Replace(b, []byte("SessionStart"), []byte("SessionStartX"), 1), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	planFile := filepath.Join(filepath.Dir(env.stateDir), "update.plan.json")
+	if err := update(env.args("--out", planFile), strings.NewReader(""), io.Discard, false); err != nil {
+		t.Fatalf("update --out: %v", err)
+	}
+	outR, outW, _ := os.Pipe()
+	errR, errW, _ := os.Pipe()
+	oldOut, oldErr := os.Stdout, os.Stderr
+	os.Stdout, os.Stderr = outW, errW
+	runErr := run([]string{"apply", "--plan", planFile})
+	os.Stdout, os.Stderr = oldOut, oldErr
+	outW.Close()
+	errW.Close()
+	stdout, _ := io.ReadAll(outR)
+	stderr, _ := io.ReadAll(errR)
+	if runErr != nil {
+		t.Fatalf("apply: %v", runErr)
+	}
+	if !regexp.MustCompile(`^\{\s*"result": "[0-9a-f]+"\s*\}\s*$`).Match(stdout) {
+		t.Errorf("stdout must stay the result alone:\n%s", stdout)
+	}
+	for _, want := range []string{"approve", "/hooks"} {
+		if !strings.Contains(string(stderr), want) {
+			t.Errorf("stderr lacks %q:\n%s", want, stderr)
+		}
+	}
+}
+
+// A hook file edited between --out and apply is refused by its path, as before
+// apply reported notes: the notes never hide the stale target.
+func TestApplyOfASavedUpdateNamesAHookFileChangedSinceThePlan(t *testing.T) {
+	env := newUpdateEnv(t)
+	writeUpdateCatalog(t, env.repo, skillBody("Preserve evidence.\n"))
+	gitInitLocal(t, env.repo)
+	gitCommitAll(t, env.repo, "init")
+	installDirect(t, env.home, env.stateDir, env.repo, []string{"claude", "codex"})
+	path := filepath.Join(env.home, ".codex", "hooks.json")
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, bytes.Replace(b, []byte("SessionStart"), []byte("SessionStartX"), 1), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	planFile := filepath.Join(filepath.Dir(env.stateDir), "update.plan.json")
+	if err := update(env.args("--out", planFile), strings.NewReader(""), io.Discard, false); err != nil {
+		t.Fatalf("update --out: %v", err)
+	}
+	if err := os.WriteFile(path, []byte("{\"hooks\": {},}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	err = run([]string{"apply", "--plan", planFile})
+	if err == nil || !strings.Contains(err.Error(), "hooks.json") {
+		t.Fatalf("apply error must name the changed hook file, got %v", err)
 	}
 }

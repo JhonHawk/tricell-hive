@@ -32,7 +32,7 @@ verified.
 - **Host hooks load when a session starts.** The hooks that report a session to
   the [viewer](/viewer/#host-observed-activity) are read at session start, so
   restart open sessions after installing them. Codex also skips them until you
-  approve them in `/hooks`, and Cursor CLI's use of its hooks file is verified
+  approve them in `/hooks`, and again after a Hive update that changes them, and Cursor CLI's use of its hooks file is verified
   only in the installed code. Antigravity's turn-end hook reply is not yet
   verified in a live session.
 
