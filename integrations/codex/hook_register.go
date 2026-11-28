@@ -9,7 +9,9 @@ import (
 
 // SessionEventsFile is where Hive registers `hive hook codex <event>`:
 // hooks.json in the Codex home. Stop and SubagentStop are never registered:
-// Codex expects JSON on their standard output, and the hook prints nothing.
+// Codex expects JSON on their standard output, and the hook prints nothing for
+// them. SessionStart's statusMessage stays as it is although that hook also
+// prints Hive's developer context, so the definition Codex trusts is unchanged.
 // Hive never writes the trust Codex asks for; the user approves the hook in
 // /hooks.
 func SessionEventsFile(c target.Config) hostevent.JSONHookFile {
