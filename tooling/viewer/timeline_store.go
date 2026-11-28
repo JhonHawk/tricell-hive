@@ -404,9 +404,11 @@ func (s *Store) timelineConflictOf(r *timelineRecord, source TimelineSource) *Ti
 	return &TimelineIdentityConflict{ViewerSessionID: r.ID, Title: r.Session.Title, Root: source.ProjectRoot, StoredKey: r.ProjectKey, CurrentKey: s.timelineCurrentKey(source)}
 }
 
-// timelineRecheckConflicts drops each listed work whose sources resolve to its
-// stored key again, such as after the previous origin is restored, and
-// publishes the list. The caller holds s.mu.
+// timelineRecheckConflicts drops a listed work once the root it conflicted on
+// resolves, on its own, to the work's stored key again, such as after the
+// previous origin is restored, and no other source of the work resolves to
+// another key. A root that cannot be resolved now, such as when Git fails,
+// keeps the work listed. It publishes the list. The caller holds s.mu.
 func (s *Store) timelineRecheckConflicts() {
 	kept := []TimelineIdentityConflict{}
 	for _, listed := range s.timelineConflicts {
@@ -414,11 +416,19 @@ func (s *Store) timelineRecheckConflicts() {
 		if !ok || r.Session == nil {
 			continue
 		}
+		var still *TimelineIdentityConflict
 		for _, source := range timelineRecordSources(r) {
-			if _, err := s.timelineRestoredProject(r, source); timelineIdentityChanged(err) {
-				kept = append(kept, *s.timelineConflictOf(r, source))
+			current := s.timelineCurrentKey(source)
+			if current == "" && source.ProjectRoot == listed.Root || current != "" && current != r.ProjectKey {
+				still = &TimelineIdentityConflict{ViewerSessionID: r.ID, Title: r.Session.Title, Root: source.ProjectRoot, StoredKey: r.ProjectKey, CurrentKey: current}
+				if current == "" {
+					still.CurrentKey = listed.CurrentKey
+				}
 				break
 			}
+		}
+		if still != nil {
+			kept = append(kept, *still)
 		}
 	}
 	s.timelineConflicts = kept

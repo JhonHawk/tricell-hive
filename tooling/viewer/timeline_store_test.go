@@ -646,13 +646,28 @@ func TestTimelineRuntimeOpenIsolatesAWorkWhoseRemoteChanged(t *testing.T) {
 	fresh.Source.NativeSessionID, fresh.OperationID = "fresh-native", "fresh"
 	_, err = reopened.TimelineCreate(fresh)
 	requireTimelineCode(t, err, "project_identity_changed")
-	remote = "https://github.example/team/a.git"
-	reopened.mu.Lock()
-	err = reopened.timelineMaintainLocked()
-	reopened.mu.Unlock()
-	if err != nil {
-		t.Fatal(err)
+	sweep := func() {
+		t.Helper()
+		reopened.mu.Lock()
+		err := reopened.timelineMaintainLocked()
+		reopened.mu.Unlock()
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
+	sweep()
+	if conflicts := reopened.TimelineIdentityConflicts(); !reflect.DeepEqual(conflicts, want) {
+		t.Fatalf("a sweep with origin still moved changed the list: %+v", conflicts)
+	}
+	gitDown := reopened.remote
+	reopened.remote = func(string) (string, error) { return "", errors.New("git unavailable") }
+	sweep()
+	if conflicts := reopened.TimelineIdentityConflicts(); !reflect.DeepEqual(conflicts, want) {
+		t.Fatalf("a Git failure during a sweep changed the list: %+v", conflicts)
+	}
+	reopened.remote = gitDown
+	remote = "https://github.example/team/a.git"
+	sweep()
 	if conflicts := reopened.TimelineIdentityConflicts(); len(conflicts) != 0 {
 		t.Fatalf("restoring the previous origin left the conflict listed: %+v", conflicts)
 	}
