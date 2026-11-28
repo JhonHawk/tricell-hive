@@ -1,9 +1,12 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"tricell-hive/tooling/management"
@@ -288,5 +291,265 @@ func TestWorkAdmissionReadsTheJournalUnderItsLock(t *testing.T) {
 	}
 	if j, err := readWorkJournalChecked(dir, false); err != nil || len(j.Pending) != 1 {
 		t.Fatalf("pending intents: %v", err)
+	}
+}
+
+// frozenOpen leaves, as another session would after a create whose outcome is
+// unknown, one pending open with its create step frozen and attempted.
+func frozenOpen(t *testing.T, e *viewWorkEngine, project, native, key string) *viewWorkIntent {
+	t.Helper()
+	source := viewer.TimelineSource{ProjectRoot: project, Host: queueHost, NativeSessionID: native}
+	req := viewer.TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: workID("op-"), Source: source, WorkKey: &key, Title: "Stuck " + key, Summary: "Create outcome unknown", Tickets: []viewer.TimelineTicketInput{}}
+	raw, err := json.Marshal(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	i, err := e.prepareIntent("open", "", source, viewWorkOpenContext{Binding: viewWorkBinding{Key: key, Project: project, Source: source}, Request: raw})
+	if err != nil {
+		t.Fatalf("freezing an open: %v", err)
+	}
+	if _, err = e.appendStep(i, "POST", "/api/timeline/sessions", "application/json", raw); err != nil {
+		t.Fatal(err)
+	}
+	i.Steps[0].Attempted, i.State = true, "needs_reconciliation"
+	if err = e.save(); err != nil {
+		t.Fatal(err)
+	}
+	return i
+}
+
+// An open whose create was sent and never answered, left by another session,
+// does not stop other sessions from publishing: it can only still write its
+// create response and binding, not the 12 MiB a new intent reserves. Two new
+// intents still do not fit beside it, also when the second one prepares from
+// a journal read before the first was saved.
+func TestWorkAdmissionCountsAFrozenOpenByWhatItCanStillWrite(t *testing.T) {
+	q := newQueueCLI(t)
+	dir := filepath.Join(q.f.stateDir, "publisher", "v1")
+	if _, _, err := workPublisherDir(viewWorkCommand{Options: management.Options{Scope: "user", StateDir: q.f.stateDir}}); err != nil {
+		t.Fatal(err)
+	}
+	engine := func() *viewWorkEngine {
+		e := &viewWorkEngine{state: q.f.stateDir, dir: dir}
+		if err := e.load(); err != nil {
+			t.Fatal(err)
+		}
+		return e
+	}
+	stuck := engine()
+	staleB, staleC := engine(), engine()
+	frozenOpen(t, stuck, q.project, "ended-session", "stuck-key")
+	other := viewer.TimelineSource{ProjectRoot: q.project, Host: queueHost, NativeSessionID: "other-session"}
+	if _, err := staleB.prepareIntent("close", "work-one", other, map[string]string{"n": "1"}); err != nil {
+		t.Fatalf("another session blocked by a frozen open: %v", err)
+	}
+	if _, err := staleC.prepareIntent("close", "work-two", other, map[string]string{"n": "2"}); err == nil || !strings.Contains(err.Error(), "publisher_capacity") {
+		t.Fatalf("a third intent reserved beyond the limit from a stale journal: %v", err)
+	}
+	if j, err := readWorkJournalChecked(dir, false); err != nil || len(j.Pending) != 2 {
+		t.Fatalf("pending intents %d: %v", len(j.Pending), err)
+	}
+}
+
+// What a frozen open reserves covers what completing it writes: the largest
+// create response the client reads, stored as the journal stores it, and the
+// binding that follows.
+func TestWorkFrozenOpenReservationCoversItsResponseAndBinding(t *testing.T) {
+	q := newQueueCLI(t)
+	dir := filepath.Join(q.f.stateDir, "publisher", "v1")
+	if _, _, err := workPublisherDir(viewWorkCommand{Options: management.Options{Scope: "user", StateDir: q.f.stateDir}}); err != nil {
+		t.Fatal(err)
+	}
+	e := &viewWorkEngine{state: q.f.stateDir, dir: dir}
+	if err := e.load(); err != nil {
+		t.Fatal(err)
+	}
+	i := frozenOpen(t, e, q.project, "ended-session", strings.Repeat("k", 200))
+	reserved, size := workIntentReserve(i), len(mustWorkJSON(i))
+	before, err := json.Marshal(e.journal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	i.Steps[0].Response = []byte(strings.Repeat("<", viewer.TimelineMaxResponseBody))
+	i.WorkID, i.State = strings.Repeat("f", 64), "confirmed"
+	e.journal.Bindings = append(e.journal.Bindings, viewWorkBinding{WorkID: i.WorkID, Key: strings.Repeat("k", 200), Project: q.project + strings.Repeat("/p", 1000), Change: q.project + strings.Repeat("/c", 1000), Source: i.Source})
+	after, err := json.Marshal(e.journal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if grown := len(after) - len(before); size+grown > reserved {
+		t.Fatalf("the open holds %d bytes and completing it adds %d, beyond its reservation of %d", size, grown, reserved)
+	}
+}
+
+// shellArgs runs one printed command line through sh with hive replaced by a
+// function that prints its arguments, so the test sees exactly what a shell
+// would pass, and that the line runs nothing else.
+func shellArgs(t *testing.T, line string) []string {
+	t.Helper()
+	out, err := exec.Command("sh", "-c", `hive() { for a do printf '%s\0' "$a"; done; }; `+line).Output()
+	if err != nil {
+		t.Fatalf("sh %q: %v", line, err)
+	}
+	return append([]string{"hive"}, strings.Split(strings.TrimSuffix(string(out), "\x00"), "\x00")...)
+}
+
+// commandLine is the one line of a continuation that is a command.
+func commandLine(t *testing.T, lines []string) string {
+	t.Helper()
+	found := ""
+	for _, l := range lines {
+		if strings.HasPrefix(l, "  hive ") {
+			if found != "" {
+				t.Fatalf("two command lines: %q", lines)
+			}
+			found = strings.TrimPrefix(l, "  ")
+		}
+	}
+	return found
+}
+
+func TestWorkContinuationNamesTheCommandForEachIntent(t *testing.T) {
+	sentinel := filepath.Join(t.TempDir(), "pwned")
+	hostile := "it's $(touch " + sentinel + ") `id`\nsecond line"
+	project := "/tmp/a project/it's"
+	source := viewer.TimelineSource{ProjectRoot: project, Host: "codex", NativeSessionID: "owner"}
+	openContext := func(change string) json.RawMessage {
+		key := "K-1"
+		req, _ := json.Marshal(viewer.TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "op-x", Source: source, WorkKey: &key, Title: hostile, Summary: hostile, Tickets: []viewer.TimelineTicketInput{}})
+		return mustWorkJSON(viewWorkOpenContext{Binding: viewWorkBinding{Key: key, Project: project, Change: change, Source: source}, Request: req})
+	}
+	publication := mustWorkJSON(workPublicationIntent{Command: viewWorkCommand{Action: "publish", Host: "codex", NativeSessionID: "owner", Project: project, Change: project + "/change dir", Key: "K-2", Title: hostile, Summary: hostile, Stage: "verify", Reason: hostile, DocumentKey: "report", Status: "draft", Documents: []string{"report.md", "notes it's.md"}, ExplicitDocuments: true}})
+	newline := viewer.TimelineSource{ProjectRoot: "/tmp/a\n  hive view work fake", Host: "codex", NativeSessionID: "owner"}
+	persian := viewer.TimelineSource{ProjectRoot: "/tmp/پروژه\u200cها/app", Host: "codex", NativeSessionID: "owner"}
+	separator := viewer.TimelineSource{ProjectRoot: "/tmp/a\u2028  hive view work fake\u202e", Host: "codex", NativeSessionID: "owner"}
+	work := strings.Repeat("a", 64)
+	frozen := []viewWorkStep{{Method: "POST", Path: "/x", Attempted: true}}
+	rejected := []viewWorkStep{{Method: "POST", Path: "/x", Attempted: true, Rejection: "version_conflict"}}
+	owner := viewWorkCommand{Host: "codex", NativeSessionID: "owner"}
+	other := viewWorkCommand{Host: "grok", NativeSessionID: "someone", Options: management.Options{StateDir: "/tmp/state dir"}}
+	identity := []string{"--host", "codex", "--native-session-id", "owner"}
+	for _, tc := range []struct {
+		name    string
+		intent  viewWorkIntent
+		caller  viewWorkCommand
+		want    []string
+		notes   []string
+		foreign bool
+	}{
+		{"open with change", viewWorkIntent{ID: "p1", Action: "open", State: "needs_reconciliation", Source: source, Context: openContext(project + "/change dir"), Steps: frozen}, owner,
+			append(append([]string{"hive", "view", "work", "open"}, identity...), "--project", project, "--change", project+"/change dir", "--key", "K-1", "--title", "Resume", "--summary", "Resume"), []string{"cannot be discarded"}, false},
+		{"open from capture", viewWorkIntent{ID: "p2", Action: "open", State: "needs_reconciliation", Source: source, Context: openContext(""), Steps: frozen}, owner,
+			append(append([]string{"hive", "view", "work", "open"}, identity...), "--project", project, "--key", "K-1", "--title", "Resume", "--summary", "Resume"), nil, false},
+		{"publish before its work", viewWorkIntent{ID: "p3", Action: "publish", State: "uploading", Source: source, Context: publication}, owner,
+			append(append([]string{"hive", "view", "work", "publish"}, identity...), "--project", project, "--change", project+"/change dir", "--key", "K-2", "--title", "Resume", "--summary", "Resume", "--stage", "verify", "--reason", "Resume", "--document-key", "report", "--status", "draft", "--document", "report.md", "--document", "notes it's.md", "--explicit-documents"), nil, false},
+		{"a project with a newline, not in the command", viewWorkIntent{ID: "p8", Action: "evidence", WorkID: work, State: "verifying", Source: newline, Steps: frozen}, owner,
+			append(append([]string{"hive", "view", "work", "resume"}, identity...), "--work-id", work), nil, false},
+		{"a project with a line separator in the command", viewWorkIntent{ID: "p10", Action: "open", State: "needs_reconciliation", Source: separator, Context: mustWorkJSON(viewWorkOpenContext{Binding: viewWorkBinding{Key: "K-4", Project: separator.ProjectRoot, Source: separator}}), Steps: frozen}, owner,
+			nil, []string{"control character: no command is printed"}, false},
+		{"a project with a zero-width non-joiner", viewWorkIntent{ID: "p11", Action: "open", State: "needs_reconciliation", Source: persian, Context: mustWorkJSON(viewWorkOpenContext{Binding: viewWorkBinding{Key: "K-5", Project: persian.ProjectRoot, Source: persian}}), Steps: frozen}, owner,
+			append(append([]string{"hive", "view", "work", "open"}, identity...), "--project", persian.ProjectRoot, "--key", "K-5", "--title", "Resume", "--summary", "Resume"), nil, false},
+		{"a project with a newline in the command", viewWorkIntent{ID: "p9", Action: "open", State: "needs_reconciliation", Source: newline, Context: mustWorkJSON(viewWorkOpenContext{Binding: viewWorkBinding{Key: "K-3", Project: newline.ProjectRoot, Source: newline}}), Steps: frozen}, owner,
+			nil, []string{"control character: no command is printed"}, false},
+		{"evidence of a work", viewWorkIntent{ID: "p4", Action: "evidence", WorkID: work, State: "needs_reconciliation", Source: source, Steps: frozen}, owner,
+			append(append([]string{"hive", "view", "work", "resume"}, identity...), "--work-id", work), []string{"cannot be discarded"}, false},
+		{"rejected with a work", viewWorkIntent{ID: "p5", Action: "evidence", WorkID: work, State: "rejected_conflict", Source: source, Steps: rejected}, owner,
+			append(append([]string{"hive", "view", "work", "reconcile"}, identity...), "--work-id", work, "--pending", "p5", "--action", "archive-rejected"), []string{"add --reason TEXT to that command before running it"}, false},
+		{"rejected open", viewWorkIntent{ID: "p6", Action: "open", State: "rejected_conflict", Source: source, Context: openContext(""), Steps: rejected}, owner,
+			nil, []string{"no command continues or archives it"}, false},
+		{"another session", viewWorkIntent{ID: "p7", Action: "evidence", WorkID: work, State: "verifying", Source: source, Steps: frozen}, other,
+			append(append([]string{"hive", "view", "work", "resume"}, identity...), "--state-dir", "/tmp/state dir", "--work-id", work), []string{"another session's: give it to the user, do not run it from this session"}, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			lines := workContinuation(&tc.intent, tc.caller)
+			for _, l := range lines[1:] {
+				if !strings.HasPrefix(l, "  ") || strings.HasPrefix(l, "  hive ") && strings.Contains(l, "fake") {
+					t.Fatalf("a stored value started a line of its own: %q", lines)
+				}
+			}
+			if tc.intent.Source == source && !strings.HasPrefix(lines[0], tc.intent.ID+": "+tc.intent.Action+", "+tc.intent.State+" · codex session owner · "+project) {
+				t.Fatalf("description %q", lines[0])
+			}
+			line := commandLine(t, lines)
+			if tc.want == nil {
+				if line != "" {
+					t.Fatalf("a command for an intent nothing continues: %q", line)
+				}
+			} else if got := shellArgs(t, line); !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("command runs\n%q\nwant\n%q", got, tc.want)
+			} else if strings.Contains(strings.Join(lines, "\n"), "add --reason") {
+				if _, err := parseViewWorkCommand(append(got[3:], "--reason", "Archived by the user"), strings.NewReader("")); err != nil {
+					t.Fatalf("the archive command with its reason does not parse: %v", err)
+				}
+			} else if _, err := parseViewWorkCommand(got[3:], strings.NewReader("")); err != nil {
+				t.Fatalf("the printed command does not parse: %v", err)
+			}
+			if strings.Contains(strings.Join(lines, "\n"), "touch") {
+				t.Fatalf("stored free text reached the message: %q", lines)
+			}
+			for _, note := range tc.notes {
+				if !strings.Contains(strings.Join(lines, "\n"), note) {
+					t.Fatalf("lines lack %q: %q", note, lines)
+				}
+			}
+			if marked := strings.Contains(strings.Join(lines, "\n"), "another session's"); marked != tc.foreign {
+				t.Fatalf("another-session marker %v, want %v: %q", marked, tc.foreign, lines)
+			}
+		})
+	}
+	if _, err := os.Stat(sentinel); err == nil {
+		t.Fatal("a printed command ran the stored text")
+	}
+}
+
+// publisher_capacity names the intents that hold the journal, with the
+// command of each, the one from another session marked.
+func TestWorkCapacityErrorNamesTheIntentsThatHoldIt(t *testing.T) {
+	q := newQueueCLI(t)
+	dir := filepath.Join(q.f.stateDir, "publisher", "v1")
+	if _, _, err := workPublisherDir(viewWorkCommand{Options: management.Options{Scope: "user", StateDir: q.f.stateDir}}); err != nil {
+		t.Fatal(err)
+	}
+	holder := &viewWorkEngine{state: q.f.stateDir, dir: dir}
+	if err := holder.load(); err != nil {
+		t.Fatal(err)
+	}
+	caller := viewWorkCommand{Host: queueHost, NativeSessionID: "caller", Options: management.Options{StateDir: q.f.stateDir}}
+	blocked := &viewWorkEngine{state: q.f.stateDir, dir: dir, caller: caller}
+	if err := blocked.load(); err != nil {
+		t.Fatal(err)
+	}
+	source := viewer.TimelineSource{ProjectRoot: q.project, Host: queueHost, NativeSessionID: "holder"}
+	if _, err := holder.prepareIntent("close", "work-one", source, map[string]string{"n": "1"}); err != nil {
+		t.Fatal(err)
+	}
+	_, err := blocked.prepareIntent("close", "work-two", viewer.TimelineSource{ProjectRoot: q.project, Host: queueHost, NativeSessionID: "caller"}, map[string]string{"n": "2"})
+	if err == nil || !strings.HasPrefix(err.Error(), "publisher_capacity") {
+		t.Fatalf("second 12 MiB intent: %v", err)
+	}
+	text := err.Error()
+	for _, want := range []string{"close, prepared · codex session holder · " + q.project, "another session's: give it to the user", "hive view work resume --host codex --native-session-id holder --state-dir " + q.f.stateDir + " --work-id work-one"} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("error lacks %q:\n%s", want, text)
+		}
+	}
+}
+
+// An open reserves 12 MiB until its create is frozen, then what it can still
+// write: the response and binding, or only the binding once the response is
+// stored.
+func TestWorkIntentReserveFollowsWhatAnOpenCanStillWrite(t *testing.T) {
+	i := &viewWorkIntent{ID: "p", Action: "open", State: "prepared", Steps: []viewWorkStep{}}
+	if got := workIntentReserve(i); got != workIntentReservation {
+		t.Fatalf("open before its create is frozen reserves %d", got)
+	}
+	i.Steps = []viewWorkStep{{Method: "POST", Path: "/api/timeline/sessions", Attempted: true}}
+	frozen := workIntentReserve(i)
+	if frozen >= workIntentReservation || frozen < base64.StdEncoding.EncodedLen(viewer.TimelineMaxResponseBody) {
+		t.Fatalf("frozen open reserves %d", frozen)
+	}
+	i.Steps[0].Response = []byte(`{}`)
+	if got := workIntentReserve(i); got >= frozen-base64.StdEncoding.EncodedLen(viewer.TimelineMaxResponseBody)+64 {
+		t.Fatalf("open with its response stored reserves %d, frozen %d", got, frozen)
 	}
 }
