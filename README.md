@@ -458,11 +458,16 @@ lists where each flow loops.
   boundary, and your validation through a walkthrough, and then integrates it.
   The checks that always run for each kind of change hold in every delivery
   mode, and the final report ends with how to try the change yourself.
-- [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) moves the ticket, writes the work's business rules to it and reports at
+- [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) moves the ticket and writes the work's business rules to it at
   integration, also when a project declares a later completion point in its
-  `Completion` key, then ends as the close's situation sets: with a footer that lists
+  `Completion` key, and then waits: the cleanup, the viewer close, the inventory of
+  the work's support material and the one final report run when you type `/flow-close`,
+  ask for the close or end the session, not when you start other work. The message
+  at integration shows what was integrated and verified, how to try it and the close
+  command; unattended work closes on its own. The close, when it runs, ends as its
+  situation sets: with a footer that lists
   replies from the context, such as closing or resolving a finding, or with the report alone
-  for a deploy's cleanup, abandoned work, a session-hygiene request or unattended work. At the merge the cleanup runs
+  for a deploy's cleanup, abandoned work, a session-hygiene request or unattended work. In the close the cleanup runs
   before the report, with no question: the work's resources and the evidence its ticket
   or pull request holds, plus your earlier merged branches and their clean worktrees in
   each repository the work touched. Only what needs your answer waits for a close reply,
