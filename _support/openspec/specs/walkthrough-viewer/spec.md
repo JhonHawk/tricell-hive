@@ -172,7 +172,15 @@ Browser and CLI title/archive/pin/deletion and recovery SHALL require existing a
 - THEN v3 rejects it without changing work and offers reload instead of automatic replay.
 
 ### Requirement: Required native session registration
-New timeline sessions SHALL require the resolved registered project, canonical host and actual native session ID, and MAY carry a work key. An identity resolved by the manager from a verified host source, as «Resolved native identity and current work» sets, is the actual native session ID, not a synthesized one. The server SHALL derive a distinct viewer ID from the project, host, native session ID and the effective work key: the given work key, or, when absent, the creating operation ID. It SHALL enforce exact uniqueness across concurrent requests, retries and restarts. Sessions stored before work keys existed SHALL keep their IDs. Missing identity SHALL be rejected rather than synthesized. Native IDs SHALL remain opaque and separate from viewer storage IDs. Existing registration SHALL not overwrite metadata or reopen closed/deleted work. API registration SHALL recover persisted root/project bindings before hashing identity; temporary metadata failure SHALL not replace a known project key with a path fallback, and unresolved/conflicting identity SHALL fail explicitly.
+New timeline sessions SHALL require the resolved registered project, canonical host and actual native session ID, and MAY carry a work key. An identity resolved by the manager from a verified host source, as «Resolved native identity and current work» sets, is the actual native session ID, not a synthesized one. The server SHALL derive a distinct viewer ID from the project, host, native session ID and the effective work key: the given work key, or, when absent, the creating operation ID. It SHALL enforce exact uniqueness across concurrent requests, retries and restarts. Sessions stored before work keys existed SHALL keep their IDs. Missing identity SHALL be rejected rather than synthesized. Native IDs SHALL remain opaque and separate from viewer storage IDs. Existing registration SHALL not overwrite metadata or reopen closed/deleted work. API registration SHALL recover persisted root/project bindings before hashing identity; temporary metadata failure SHALL not replace a known project key with a path fallback, and unresolved/conflicting identity SHALL fail explicitly. A stored path key equal to its registered root SHALL match the remote key that root resolves once it gains a remote: new works SHALL take the remote key, and works bound to the path SHALL keep their key and ID and continue to reopen, replay, accept joins, recovery and host events, and load. A stored remote key that the root now resolves to another remote, or to its path, SHALL remain a conflict: creation from that root SHALL fail with project_identity_changed, and loading SHALL keep the work with its stored key, still validate its other sources and blobs, and report it in the index errors with the root, the stored and current keys and the recovery, instead of failing the startup.
+
+#### Scenario: Root gains its first remote
+- WHEN a root whose stored works carry its path key gains an `origin`
+- THEN a new tuple is created with the remote key, the stored tuples reopen and replay with their path key and ID, and the store loads
+
+#### Scenario: Root's remote changes
+- WHEN a root whose stored work carries remote key A now resolves remote B
+- THEN the viewer starts with every work, the index errors name that work, both keys and the recovery, and creation from that root fails with project_identity_changed
 
 #### Scenario: Resume or concurrent creation
 - WHEN two clients from the same native session register the same project/host/native-session tuple with the same work key
@@ -430,6 +438,11 @@ The viewer SHALL derive a read-only navigation group from an exact registered or
 - WHEN two stored works have distinct project keys and their original registered roots declare the same valid name
 - THEN navigation shows one named group with both works and the correct visible count
 - AND their IDs, project keys, sources and join boundaries remain unchanged.
+
+#### Scenario: A root gains its first remote
+- WHEN a root's earlier works carry its path key and its later works carry its remote key
+- THEN navigation shows them in two canonical-project groups unless the root declares a valid name, which joins them in one group
+- AND their IDs and project keys remain unchanged.
 
 #### Scenario: Configuration changes after publication
 - WHEN the explicit name changes, is removed or becomes invalid
