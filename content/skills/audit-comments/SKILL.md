@@ -18,11 +18,19 @@ Remove the comments a codebase does not need, keep what they recorded where it b
 
 ## Ledger
 
-4. **Mark every comment.** With at most 200 comments in scope, mark them in the main thread; otherwise give each lane (one app or package) to one `hive-write-ledger` child, briefed as [delegation](../hive-core/delegation/delegation.md) sets, with this section, the no-comments leaf, the lane's inventory lines in a file of their own in the host's temporary location, since a comment's text can hold a secret that a brief never carries, and a ledger file of its own there as its output destination. The child marks only the comments of its inventory file. It reads each comment with the code around it and its history (`git log -S`), writes one row per comment as `category · file:line · evidence` and returns its counts per category. A mechanical class (banners like `// ======`, labels like `// Arrange`) is one row with the exact pattern that found it, so a later batch can repeat it. The categories, with their no-comments counterpart:
+4. **Mark every comment.** With at most 200 comments in scope, mark them in the main thread; otherwise give each lane (one app or package) to one `hive-write-ledger` child, briefed as [delegation](../hive-core/delegation/delegation.md) sets, with:
+   - this section;
+   - the no-comments leaf;
+   - the lane's inventory lines in a file of their own in the host's temporary location, since a comment's text can hold a secret that a brief never carries;
+   - a ledger file of its own there as its output destination.
+
+   The child marks only the comments of its inventory file. It reads each comment with the code around it and its history (`git log -S`), writes one row per comment as `category · file:line · evidence` and returns its counts per category. A mechanical class (banners like `// ======`, labels like `// Arrange`) is one row with the exact pattern that found it, so a later batch can repeat it.
+
+   The categories, with their no-comments counterpart:
    - **Tautology** (Kill): it repeats what the code, a name or a type already says, including a rule the code expresses as the leaf's Kill sets, or marks a section the structure shows.
    - **Stale** (Kill): it describes code or behavior the current source or its history contradicts, records a past change, or holds commented-out code.
    - **Excuse** (new): it justifies a shortcut, such as a silent catch or a fallback, so the shortcut looks acceptable. Name the shortcut and its consequence.
-   - **Decision record** (Keep): it states a non-obvious decision or a constraint from outside the code, confirmed as step 4 of the leaf sets. A Keep that fails that confirmation is Stale.
+   - **Decision record** (Keep): it states a decision the code, its tests and its history do not show, or a constraint from outside the code, confirmed as step 4 of the leaf sets. A Keep that fails that confirmation is Stale.
    - **Constraint** (Constraint): it tells the next editor what not to do; propose the check the leaf's step 5 sets.
    - **Public API contract**: apply the leaf’s public API contract criterion. Keep the contract on the declaration and record the public surface and supporting code or test in its ledger row. Verify these rows even when the inventory flags the block as a public API doc candidate. Configure and test the project’s matcher as [ratchet](references/ratchet.md) sets before deleting any comments.
    - **Directive**: a tool reads it, or it is a license header; it stays. A lint or type-checker suppression among them goes to [suppression review](../hive-core/review/suppression-review.md).

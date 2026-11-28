@@ -25,10 +25,15 @@ Ask them in the round of the manifest, as [decision format](../../hive-core/mess
 
 ## Old change register and records
 
-Read when the planner reports a legacy row: `<Specs>/changes/` (each child of the archive and each change folder), `sessions/`, `evidence/` and `reports/`, `archive/`, `archived/`, `backups/`, `plan/` or `spec/`, whether under `_support/` or at the root of a Git repository. A root outside Git plans nothing inside a repository of its own or inside another root of the same plan; that root's plan holds it. The planner, not you, decides each row's `action`:
+Read when the planner reports a legacy row: `<Specs>/changes/` (each child of the archive and each change folder), `sessions/`, `evidence/` and `reports/`, `archive/`, `archived/`, `backups/`, `plan/` or `spec/`, whether under `_support/` or at the root of a Git repository. A root outside Git plans nothing inside a repository nested in it or inside another root of the same plan; the plan of that repository or of that other root holds the item. The planner, not you, decides each row's `action`:
 
 - **move** to `workspace/<YYYY-MM-DD>-<work>/` of the support home (the repository's `_support/`; for a legacy home at the root of a repository with no `_support/`, the `_support/` of the workspace folder when it is also a root of the plan, written `../_support/workspace/...`), dated by the item's name, else its first commit, else its oldest file; dumps and exports go to `_support/data/`, which is never deleted without the user's answer. A tracked item leaves Git (`untrack`): the project's delivery commit carries the removal, and history keeps it.
-- **delete**, with `--legacy remove` (the answer to step 2's question), each legacy record a **move** row would take that Git tracks and that has no uncommitted, untracked, ignored or hidden edit; an untracked or edited record still moves, since no tag restores it, a record that holds a dump or export moves as a decision of its own, and one a document cites is deleted all the same: its row lists the citations (`cited_by`, with `file:line`, at most 10 and the count of the rest) in its notes and `plan.json`, and they never change its action, except that an untracked delete row a text file names goes to review, since no tag restores it. After apply, repoint each citation of a removed record to `archive/<YYYY-MM-DD>-<slug>:<path>`, or to the document that now holds the fact; `verify` lists what remains in `note:` lines, and accepts a path written after a ref only when that ref holds it.
+- **delete**, with `--legacy remove` (the answer to step 2's question), each legacy record a **move** row would take that Git tracks and that has no uncommitted, untracked, ignored or hidden edit. Three cases:
+  - an untracked or edited record still moves, since no tag restores it;
+  - a record that holds a dump or export moves as a decision of its own;
+  - one a document cites is deleted all the same: its row lists the citations (`cited_by`, with `file:line`, at most 10 and the count of the rest) in its notes and `plan.json`, and they never change its action, except that an untracked delete row a text file names goes to review, since no tag restores it.
+
+  After apply, repoint each citation of a removed record to `archive/<YYYY-MM-DD>-<slug>:<path>`, or to the document that now holds the fact; `verify` lists what remains in `note:` lines, and accepts a path written after a ref only when that ref holds it.
 - **delete** each child of the change archive and each loose file of `changes/` when it is tracked and has no uncommitted, untracked or ignored file (the archive is planned one child per row, so a dirty child stays without keeping the rest), each change folder whose last commit is reachable from `origin/<base>` (the `Base branch` of `## Hive`, else the remote's default), and output tooling regenerates that Git ignores and that sits outside `evidence/` and `reports/` (anything else moves like a record).
 - **keep** a change folder that is not reachable, named in the manifest with its last commit; one with uncommitted edits; a child of the archive or a loose file that is untracked, ignored or edited; every change folder, every child of the archive and loose files when `_support/` is outside Git, the base does not resolve or `git status` fails; `--keep` or `--override` settles any of them. Ask about it; never delete it to make the list shorter.
 - **review** each child of `plan/` and `spec/`, which may hold current knowledge: promote what is current to the docs home, then name the rest with `--keep` or `--override`. A top-level folder (`sessions/`, `evidence/`, `reports/`, `archive/`, `archived/`) that code or configuration cites as a path in force is a review row too, since a tag does not fix a broken build and the planner has no rewrite for a bare folder name: update the citation, then name the folder with `--keep` or `--override`. A folder only documents cite is not held back. A destination that nests inside another row's destination (the same work in `sessions/` and `evidence/`) moves outer folder first and is no review row; one that collides with a path the outer folder already holds is.
@@ -42,7 +47,12 @@ Two steps need judgment, so the script leaves them to you; propose each one at a
 
 Group entries by repository, in the order they can be applied. Each entry has:
 
-Each entry has an operation (`rename`, `move`, `archive`, `create`, `insert`, `keep`, `manual` or `ask`), repository-relative source and destination paths, the exact `git mv` or `mkdir` command for mechanical operations (for `insert`, the exact line and the line it follows; none for `manual` or `ask`), the reason (the evidence that places it there), the files that reference the source path, and the risk (collisions, links to rewrite, open work using the path).
+- an operation (`rename`, `move`, `archive`, `create`, `insert`, `keep`, `manual` or `ask`);
+- repository-relative source and destination paths;
+- the exact `git mv` or `mkdir` command for mechanical operations (for `insert`, the exact line and the line it follows; none for `manual` or `ask`);
+- the reason (the evidence that places it there);
+- the files that reference the source path;
+- the risk (collisions, links to rewrite, open work using the path).
 
 Rules for proposing entries:
 
