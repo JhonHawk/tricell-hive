@@ -17,6 +17,8 @@ What always runs for each kind of change; each check keeps its own rule, linked 
 
 ## What the report carries
 
+Group passing checks on the same revision in one sentence. When results differ, identify the failed or pending check and its effect on delivery, or name the revision each result covers. Keep any required defect proof with its criterion.
+
 - **Try it:** when the user can see or operate the change as its users do, a block headed in the session language, such as **Try it**, written as the steps those users take rather than the commands that run the app, in this form:
 
   ```markdown
