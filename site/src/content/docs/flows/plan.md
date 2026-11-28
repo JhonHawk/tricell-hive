@@ -86,8 +86,8 @@ A guide update adds export instructions and explains how reviewers use the expor
 - **AC1** — A reader can find the export command in the setup guide.
 - **AC2** — A reviewer can find the exported file using the review guide.
 - **D1** — Both guides use the same sample filename so readers can follow the file across steps.
-- **T1** — Document the export command and its output in the setup guide (AC1).
-- **T2** — Add the file lookup step to the review guide (AC2).
+- **T1** — The main agent documents the export command and its output in the setup guide (AC1).
+- **T2** — The main agent adds the file lookup step to the review guide (AC2).
 
 **Verification for T1 and T2.** Build the documentation once and follow the example across both pages.
 
