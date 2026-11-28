@@ -43,7 +43,7 @@ This applies when a written plan changes during planning or the build: a decisio
 
      They reread it as [reviewer brief](../delegation/reviewer-brief.md) sets, and, with several reviewers, those [plan review](../../flow-plan/references/plan-review.md) names reread it.
    - A reviewer does not reread a revision that applies its own proposal as proposed.
-   - While the plan is being planned, it gets at most one reread round: a gap that survives it, or one a later revision brings, goes to the user as a decision in the plan summary. During the build, each such revision gets one reread round, and a surviving gap goes to the user as a decision.
+   - While the plan is being planned, it gets at most one reread round: a gap that survives it, or one a later revision brings, goes to the user as a decision before the full plan summary, with the affected criteria and tasks. During the build, each such revision gets one reread round, and a surviving gap goes to the user as a decision.
 5. Add one line to the progress section with the revision, its reason and what it invalidated, renew the sandbox copy when there is one, and tell the user in a line.
 
 A plan kept in the conversation applies steps 1, 2 and 5 to its checkpoint file.
