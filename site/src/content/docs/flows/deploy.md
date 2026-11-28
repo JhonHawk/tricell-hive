@@ -31,7 +31,7 @@ When a deployment fails because of a defect, the fix goes through [Build](/flows
 
 ## How it ends
 
-With what it observed, handed to [Close](/flows/close/): per environment, the identity served, the health and the functional acceptance, each as met, failed, blocked or not run. Close then runs its cleanup at once and writes the one final report, the [deployment row](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/close/close-report.md#variants) of the close report, and ends on it, without a footer; it still asks what to do with the support material, and before removing a dump, an export or a resource outside your machine. The steps and checks are in the [flow-deploy skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-deploy/SKILL.md), its [deployment checks](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-deploy/references/deployment-checks.md) and its [urgent fixes](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-deploy/references/urgent-fixes.md) reference.
+With what it observed, handed to [Close](/flows/close/): per environment, the identity served, the health and the functional acceptance, each as met, failed, blocked or not run. Close is then left pending, with the message carrying what was observed; the cleanup and the one final report, the [deployment row](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/close/close-report.md#variants) of the close report, run when you type `/flow-close`, ask for the close or end the session (unattended work closes at once), and end on the report without a footer; the cleanup still asks what to do with the support material, and before removing a dump, an export or a resource outside your machine. The steps and checks are in the [flow-deploy skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-deploy/SKILL.md), its [deployment checks](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-deploy/references/deployment-checks.md) and its [urgent fixes](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-deploy/references/urgent-fixes.md) reference.
 
 ## What it does not do
 
@@ -42,7 +42,7 @@ With what it observed, handed to [Close](/flows/close/): per environment, the id
 ## Related flows
 
 - [Verify](/flows/verify/) integrates the candidate that Deploy promotes.
-- [Close](/flows/close/) closes the work at integration; Deploy comes after it.
+- [Close](/flows/close/) finishes the work after integration, when you ask for it; Deploy comes after integration.
 - [Changes and loops](/flows/overview/) shows what happens when you add or remove tickets during a run.
 
 ## FAQ
