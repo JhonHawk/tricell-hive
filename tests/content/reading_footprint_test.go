@@ -272,7 +272,12 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 				// (D12 A), on feat/close-on-demand from development at 0daa08be,
 				// measured again after the fixes of its review findings.
 				const closeOnDemandAllowance = 1204
-				allowance := planReviewAllowance + reportingFamilyAllowance + reuseSoundBaseAllowance + skillRegistryAllowance + closeOnDemandAllowance
+				// The writing audit split dense list-sentences into lists and rewrote
+				// soft criteria in leaves the plan/build cycle reads; the user accepted
+				// that growth on 2026-11-28 (D18 B), on fix/guidance-writing-audit from
+				// development at 8a8fabde.
+				const writingAuditAllowance = 720
+				allowance := planReviewAllowance + reportingFamilyAllowance + reuseSoundBaseAllowance + skillRegistryAllowance + closeOnDemandAllowance + writingAuditAllowance
 				if like >= declared.bytes+allowance {
 					t.Errorf("plan-build-required union without the moments the baseline did not read is %d B, not below the baseline %d B plus the %d B allowance", like, declared.bytes, allowance)
 				}
