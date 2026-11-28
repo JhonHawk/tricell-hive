@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -484,6 +485,16 @@ type TimelineIdentityConflict struct {
 	Root            string
 	StoredKey       string
 	CurrentKey      string
+}
+
+// IndexError is the conflict as the index reports it: the root it came from and
+// what to do about it.
+func (c TimelineIdentityConflict) IndexError() IngestError {
+	now := "no longer resolves to it"
+	if c.CurrentKey != "" {
+		now = "now resolves " + c.CurrentKey
+	}
+	return IngestError{Code: "project_identity_changed", Path: c.Root, Reason: fmt.Sprintf("work %s %q keeps project %s; %s %s, so new works from it are refused. Restore the previous origin to open works from this root.", c.ViewerSessionID, c.Title, c.StoredKey, c.Root, now)}
 }
 
 // TimelineIdentityConflicts lists the works the last load isolated.

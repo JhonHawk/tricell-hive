@@ -313,6 +313,9 @@ func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	view := indexView{TimelineSessions: s.store.TimelineIndex(), ProtocolVersion: 3, Retention: "manual", Repositories: repositoryStatuses(reg), Errors: []IngestError{}}
+	for _, conflict := range s.store.TimelineIdentityConflicts() {
+		view.Errors = append(view.Errors, conflict.IndexError())
+	}
 	if r.URL.Query().Get("navigation") == "grouped" {
 		view.Navigation = groupedNavigation(view.TimelineSessions, reg)
 	}
