@@ -60,7 +60,7 @@ A plan delivered in two or more units (pull requests, commits to the base, or ca
 
 ## Revising a plan in progress
 
-When a written plan changes during planning or the build, the agent updates in one pass every place the plan states the change: its decisions, criteria, design, the tasks' text, `Closes:` and verification. It marks the new item with `Replaces:`, or a dropped criterion with `Retired:`, reopens the tasks the revision invalidates, and runs the check, which also reports a criterion that names no `Observed in:` place, until it is clean. A verification command the revision changes, or whose runner, dependency or imported module it changes, runs again before the next review round, against the working tree when the build has started. Before any reread, the agent checks what the revision wrote: each step, section, ID, `file:line`, size or limit it names exists and says what the text claims, and no other place states it differently. A decision the revision took as an assumption that relaxes a standing rule or overrides one of your decisions comes to you as a decision instead of going to the reread. Then, when the revision changed a contract, an interface, a criterion, a decision, an assumption, an external fact, or a verification line, the plan reviewer (`hive-review-plan`) rereads it, through a message to the same reviewer, or a new one given the earlier findings when that message cannot be sent; a revision that applies a reviewer's own proposal as proposed is not reread by that reviewer. While the plan is being planned it gets one reread round at most, and a gap that survives it, or one a later revision brings, comes to you as a decision in the plan summary; during the build, each such revision gets its own round. With several reviewers, only those whose repository the revision touched reread it. The revision is recorded in the progress section and the agent tells you in one line. The steps are in the [flow-plan skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/SKILL.md).
+When a written plan changes during planning or the build, the agent updates in one pass every place the plan states the change: its decisions, criteria, design, the tasks' text, `Closes:` and verification. It marks the new item with `Replaces:`, or a dropped criterion with `Retired:`, reopens the tasks the revision invalidates, and runs the check, which also reports a criterion that names no `Observed in:` place, until it is clean. A verification command the revision changes, or whose runner, dependency or imported module it changes, runs again before the next review round, against the working tree when the build has started. Before any reread, the agent checks what the revision wrote: each step, section, ID, `file:line`, size or limit it names exists and says what the text claims, and no other place states it differently. A decision the revision took as an assumption that relaxes a standing rule or overrides one of your decisions comes to you as a decision instead of going to the reread. Then, when the revision changed a contract, an interface, a criterion, a decision, an assumption, an external fact, or a verification line, the plan reviewer (`hive-review-plan`) rereads it, through a message to the same reviewer, or a new one given the earlier findings when that message cannot be sent; a revision that applies a reviewer's own proposal as proposed is not reread by that reviewer. While the plan is being planned it gets one reread round at most, and a gap that survives it, or one a later revision brings, comes to you as a decision before the full plan summary; during the build, each such revision gets its own round. With several reviewers, only those whose repository the revision touched reread it. The revision is recorded in the progress section and the agent tells you in one line. The steps are in the [flow-plan skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/SKILL.md).
 
 ## How it ends
 
@@ -78,6 +78,18 @@ The agent summarizes the plan in the message: the objective with the files and a
 - Hand the finished plan to [Build](/flows/build/) by pointing it at the plan file.
 - [Close](/flows/close/) leaves the plan file as local support material and carries the work's record in the pull request body.
 - If something new comes up while the plan is open, the agent classifies it first; see [changes and loops](/flows/overview/).
+
+## Example from a plan summary
+
+A guide update adds export instructions and explains how reviewers use the exported file.
+
+- **AC1** — A reader can find the export command in the setup guide.
+- **AC2** — A reviewer can find the exported file using the review guide.
+- **D1** — Both guides use the same sample filename so readers can follow the file across steps.
+- **T1** — The main agent documents the export command and its output in the setup guide (AC1).
+- **T2** — The main agent adds the file lookup step to the review guide (AC2).
+
+**Verification for T1 and T2.** Build the documentation once and follow the example across both pages.
 
 ## FAQ
 

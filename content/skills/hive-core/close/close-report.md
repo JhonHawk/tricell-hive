@@ -4,10 +4,10 @@ Read before a final report or classifying a finding.
 
 ## Final report
 
-One message for the whole work item, each part only when it has content:
+Use one message. Omit empty parts. Within each topic, split bullets by outcome, owner or next action:
 
 - **Integrated:** the pull request, the commits and the ticket's state.
-- **Resolved:** each acceptance criterion with how it was shown, the user's corrections, and the defect's proof the [verification floor](../build/verification-floor.md) sets.
+- **Resolved:** each criterion with its evidence, user corrections, and the [verification floor](../build/verification-floor.md#what-the-report-carries)'s check results and defect proof.
 - **Try it:** the block the [verification floor](../build/verification-floor.md) sets.
 - **Omitted:** each check skipped or unable to run, with its reason, CI-only jobs included.
 - **Repaired:** local environment repairs, such as reinstalled dependencies or seeded data.
@@ -15,7 +15,7 @@ One message for the whole work item, each part only when it has content:
 - **Principles:** when `flow-build` handed it over, or the checkpoint holds its `Principles:` line, one line naming each code principle read that changed a decision, or none.
 - **Findings:** the defects not fixed, as [Findings](#findings) sets.
 - **Candidates:** the work's repetitions, as [Candidates](#candidates) sets.
-- **Next:** what remains and who owns it (the merge left to the user, review bots or base CI pending, what [support material](../../flow-close/references/support-material.md) sets to name there).
+- **Next:** each pending action, its owner and what it blocks (merge, bot review, base CI and items [support material](../../flow-close/references/support-material.md) sets to name there).
 
 When the user asks to keep or share the report, or it exceeds one screen, offer a `create-report` page as one reply of the close's reply block in [report-endings](../messages/report-endings.md#the-close-footer).
 
