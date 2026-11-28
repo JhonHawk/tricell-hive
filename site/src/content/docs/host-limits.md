@@ -55,7 +55,8 @@ verified.
   command writes, which stay under your permission and sandboxing settings.
   Hive uses that known gap only to add new entries to the main checkout's
   `HIVE.local.md` and `ACCOUNTS.md` and to write new local scripts and
-  second-factor key files; it keeps a saved sign-in state inside the worktree.
+  second-factor key files; a saved sign-in state stays where the
+  [Browser tool rule](https://github.com/JhonHawk/tricell-hive/blob/development/content/skills/hive-core/ui/ui-verification.md#browser-tool) saves it.
   A change to an existing entry, and any write your settings or the sandbox refuse, the
   agent names in its report instead.
 
