@@ -107,6 +107,8 @@ None: the tasks take no effect on an external system.
 
 **Test approach:** <tdd · characterization · check, as the tests leaf `hive-core/build/tests.md` defines them; omit for a mechanical change>
 
+**Risk:** <its risky-change category from global «Proportionality», or none>
+
 **Changes:** <what changes and what deliberately does not>
 
 **Verification:** <the command or observation, and its expected result>
