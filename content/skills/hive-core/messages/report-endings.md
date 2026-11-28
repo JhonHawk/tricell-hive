@@ -8,9 +8,9 @@ Each row below ends a message differently. Every message that closes work ends w
 | --- | --- |
 | Analysis, explanation, review or diagnosis the user asked for without asking for a change | Its findings, then [the reply block](#the-reply-block); it recommends no flow the user did not ask for, and when the findings confirm a defect in the current project, one reply fixes it. |
 | Assessment of a ticket the user picked for research | When the findings confirm work the ticket asks for, [the next-step block](#the-next-step-block) toward `flow-plan`, or `flow-build` for a small understood change ([proportionality](../plan/proportionality.md)), unless the design stage of [hive-mode](../../hive-mode/SKILL.md) sends it to its own block; otherwise as the first row. |
-| Hand-over to another flow | [The next-step block](#the-next-step-block). |
+| Hand-over to another flow, or a pending close (`Close pending` of [close modes](../close/close-modes.md)) | [The next-step block](#the-next-step-block). |
 | Close with the footer (the first row of [close modes](../close/close-modes.md)) | The report, then [the close footer](#the-close-footer), then the waiting line of [questions](questions.md) «Format». |
-| Close without the footer (the other rows of [close modes](../close/close-modes.md)) | The report, as the row of [close report](../close/close-report.md#variants) that fits, with no footer or command. |
+| Close without the footer (the other rows of [close modes](../close/close-modes.md) but the pending one) | The report, as the row of [close report](../close/close-report.md#variants) that fits, with no footer or command. |
 | A single action that changes no repository file and is not a tracker write «Scope and authorization» already authorizes, such as creating a ticket, closing one as not planned, deleting a merged branch or saving to memory | Never routed through a flow's command: offer it as one more reply of the block, such as `C - Create the ticket`, when the message ends with one, and otherwise ask it as a decision of the round. The answer authorizes only that action; creating the ticket then follows [create-issue](../../create-issue/SKILL.md), in the same turn. An answer to another decision authorizes a ticket or other single action only when the chosen option's label or description, as the question tool shows it, names that action. |
 
 ## The reply block
@@ -46,7 +46,7 @@ A - <another reply, such as keep investigating or what to change>
 
 Command syntax by host, for the next-step block: `/flow-x` in Claude Code, Grok, Cursor and Antigravity; `$flow-x` in Codex; `/skill:flow-x` in Pi; `@flow-x` in OpenCode. Write the commands of several hosts only when you cannot tell which host you run in.
 
-Offer a flow's command only when the next step needs that flow's procedure: an investigation, a design in Figma, a plan, or a change to the repository's files with its delivery. No flow needs a ticket: when the work has none, the command's argument is a short description of the work or its plan file, never a placeholder, and a ticket is proposed only as [scope changes](../plan/scope-changes.md) sets.
+Offer a flow's command only when the next step needs that flow's procedure: an investigation, a design in Figma, a plan, a pending close, or a change to the repository's files with its delivery. No flow needs a ticket: when the work has none, the command's argument is a short description of the work or its plan file, never a placeholder, and a ticket is proposed only as [scope changes](../plan/scope-changes.md) sets.
 
 Only the user's reply to this block, or a flow command they type, starts the next flow; a reply to a question or the acceptance of a proposal only settles or redirects the scope, except a fix the close footer's **Resolve findings now** reply or a findings round sends, and the [same-turn continuations](#same-turn-continuations). Keep the question tool for decisions inside a flow: scope, design, delivery and review, validation and findings.
 
