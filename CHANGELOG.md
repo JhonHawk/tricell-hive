@@ -10,6 +10,14 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Changed
+
+- Create-design draws its frames on the Figma page that already holds the
+  screen's siblings or the app's other screens, continuing that page's section
+  numbering and direction (below the existing sections when they stack in a
+  column), instead of on a new page named after the work. A new page, named
+  after the app, appears only when the file has none for that app.
+
 ### Added
 
 - At a stop that asks you to validate an app with sign-in, the agent signs in

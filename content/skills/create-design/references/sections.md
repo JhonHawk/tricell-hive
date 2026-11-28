@@ -31,9 +31,9 @@ Name each section `NN · <what it holds>`, such as `03 · Check-in flow`: a two-
 
 ## Where sections go
 
-Place this work's sections in one line, 200 px apart, in the direction the page's numbered sections already run:
+Place this work's sections in one line, 200 px apart, in the direction the page's numbered sections already run. Decide the direction once, when this work places its first section on the page, and keep it for every later section of this work, a rerun of the stage included:
 
-- **A column,** when the page's last two numbered sections share their left edge: the first of this work's sections goes 200 px below the page's lowest node, at that left edge, and each next one below it, left edges aligned.
+- **A column,** when the two highest-numbered sections on the page that this work did not create share their left edge: the first of this work's sections goes 200 px below the page's lowest node, at that left edge, and each next one below it, left edges aligned.
 - **A row,** otherwise, tops aligned: on an empty page the first starts at x 0, y 0; on any other page the row starts 200 px right of the page's existing content, at that content's top.
 
 After any node is added, moved or resized, in this work's sections or beside them (such as a card beside an existing frame), move this work's sections along their line, down in a column and right in a row, until each is 200 px from the section before it and at least 200 px from every other node. A section never overlaps another node.
