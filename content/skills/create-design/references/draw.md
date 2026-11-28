@@ -13,7 +13,8 @@ Read the platform from what step 3 gathers. With neither code nor sibling frames
 
 ## What the stage may change in the file
 
-- Create frames and sections on the work's page, and local components and variables when the frames need them.
+- Create frames and sections on the work's page: the page of the file that holds the screen's siblings, the frames step 3 measured, so the work's sections continue that page's own. Only when no page of the file holds that app's screens, create one named after the app, never after the work or its ticket.
+- Create local components and variables when the frames need them.
 - Change or delete only what this work created.
 - Never change or delete an existing variable, style, component or page, nor anything of a shared library: return each such change to the user as a decision, as the precedence of [UI criteria](ui-criteria.md#precedence) sets.
 
