@@ -54,6 +54,9 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Codex's `/hooks` screen names Hive's `SessionStart` hook "Hive: add message
+  formats as developer context and report session start". Codex skips the
+  changed hook until you approve it again in `/hooks`.
 - A plan gets one reviewer, which applies the questions of each domain
   its tasks touch and runs at high effort on the hosts that set one
   (Claude Code, Codex, Pi), instead of one reviewer per domain; several

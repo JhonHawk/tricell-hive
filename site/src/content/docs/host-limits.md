@@ -67,8 +67,10 @@ verified.
   format's parts and links the file that sets it; Codex adds it as developer
   context. A resumed or forked session keeps the copy its history already holds,
   so a session started before you installed or approved the hook gets it at its
-  next compaction. Subagents do not receive it. If Codex asks you to review Hive's hook in
-  `/hooks`, approve it for the entry to arrive.
+  next compaction. Subagents do not receive it. Codex's `/hooks` screen names
+  this hook "Hive: add message formats as developer context and report session
+  start"; approve it there for the entry to arrive, and again after a Hive update
+  that changes it.
 - **A decision round is asked once, through the waiting card or in the chat in
   full, also in Default mode.**
   Codex's Default-mode instructions reserve the card for optional questions and
