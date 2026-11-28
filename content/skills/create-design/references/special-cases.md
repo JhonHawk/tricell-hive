@@ -13,7 +13,7 @@ While [unattended delegation](../../unattended-delegation/SKILL.md) is active, a
 - with no Figma file named or declared, or one that needs the confirmation of step 3, draw nothing and report the file as unresolved;
 - when step 4 lists a step only the user can take before a frame can be drawn, do not draw that frame and report it as unresolved;
 - otherwise draw, keep every example with the record's status as pending, and report the choice or the approval as unresolved;
-- for a web app served on mobile, after the web frames are reviewed, run the [mobile phase](approval.md#mobile-phase) without its approval, keep both sets pending and report both approvals as unresolved;
+- for a web app served on mobile, start the [mobile phase](approval.md#mobile-phase) once the web frames are reviewed instead of approved, and draw from the reviewed web frames; keep both sets pending and report both approvals as unresolved;
 - keep each rule `proposed` or `scope` and report it as unresolved; a `scope` rule still stops the screens it shapes, the stage does not end toward research, and the stopped screens stay unresolved while the plan covers the others.
 
 Work that will be built then continues without an approved example, so the plan settles the UI. A request whose deliverable is the design stays not done, with its approval reported as unresolved, and does not run the close.

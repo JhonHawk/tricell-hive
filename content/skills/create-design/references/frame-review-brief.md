@@ -13,4 +13,4 @@ Frames have no states to reach, so the brief gives:
 
 It leaves out the drawer's list of proposed business rules, so the reviewer finds the rules nothing settles on its own. Only the brief of the one follow-up review also gives each rule card's node with its frame's and the record's `rule:` lines of those screens, as [rule cards](rule-cards.md) sets.
 
-In the mobile phase, the brief also gives the approved web frame of each mobile frame, which the mobile frame must follow, the node of the twin section, and the cards with their «on mobile» rows.
+In the mobile phase, the brief also gives the approved web frame of each mobile frame, which the mobile frame must follow (under unattended delegation, the reviewed web frame, named as not approved), and the node of the twin section; as above, only its one follow-up review gets the cards, with their «on mobile» rows.

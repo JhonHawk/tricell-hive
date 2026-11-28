@@ -14,7 +14,7 @@ Write in `examples.md`, created with the inventory in the work's folder under `_
 - the path of each frame's local image in that folder's `images/`;
 - one status line per screen of the work, `drawn, under review` or `stopped by <the rule>`;
 - apart from those, one `rule:` line per rule, `proposed`, `assumption` or `scope`, found by the drawer or the reviewer;
-- in the mobile phase, one status line per mobile frame, `mobile · <screen>`, followed by the same statuses (`drawn, under review`, then `drawn, pending the user's approval`, then `approved <date>`); a rule the mobile frames show is recorded as the drawer's rules are;
+- in the mobile phase, one status line per mobile frame, `mobile · <screen>` for the screen's own frame and `mobile · <screen> · <state>` for a state's, followed by the same statuses (`drawn, under review`, then `drawn, pending the user's approval`, then `approved <date>`); a rule the mobile frames show is recorded as the drawer's rules are;
 - one `candidate: <piece> · <node>` line per piece defined outside the bound library, which step 6's message lists.
 
 The location and the nodes are the record: the image is a local copy, read again from them where it is missing.
