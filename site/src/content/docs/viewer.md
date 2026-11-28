@@ -28,7 +28,7 @@ The agent never starts the viewer. When it is stopped, `capture` answers `queued
 ## Host-observed activity
 
 When Hive is installed at user scope, each host reports its own session events to
-the viewer through the silent `hive hook` command, so the agent does not publish
+the viewer through the `hive hook` command, silent except for host contracts, so the agent does not publish
 them. The viewer stores them as **host-observed**, apart from what the agent
 publishes, and shows **From host** (**Del host** in Spanish) on them.
 

@@ -230,7 +230,9 @@ Native task-list changes become tasks keyed `host:<native task ID>` (up to 50,
 bound to the active stage) only while the work has no agent-registered task.
 Events never start or complete a stage, change authority, record approvals or
 close a work; a session end only updates activity. The hook prints nothing,
-finishes within 2 s and exits 0 on any error. Which host events exist and what
+except Antigravity's required reply and, at a Codex main session's start, the
+developer-context entry `hive-core/assets/codex-developer-context.md` with its
+`skill:` links rewritten; it finishes within 2 s and exits 0 on any error. Which host events exist and what
 each hook payload carries is in [host session events](host-session-events.md).
 
 Registration records project roots in `viewer/registry.json`. Resolution uses
