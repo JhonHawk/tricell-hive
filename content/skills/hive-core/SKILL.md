@@ -6,4 +6,4 @@ disable-model-invocation: true
 
 # Hive core
 
-The leaves live in domain folders, one per domain that `assets/domains.json` lists, such as `git/` or `review/`; a leaf's own references are in `<domain>/<leaf>/` and its scripts in `scripts/<leaf>/`. The code principles are the `principles/` domain, with their own index in `principles/index.md`. Read a leaf whole when an index names its moment; do not invoke this skill.
+The leaves live in domain folders, one per domain that `assets/domains.json` lists, such as `git/` or `review/`; a leaf's own references are in `<domain>/<leaf>/` and its scripts in `scripts/<leaf>/`. The code principles are the `principles/` domain, with their own index in `principles/index.md`. Read a leaf whole when an index names its moment, unless you read it whole since the last compaction; do not invoke this skill.
