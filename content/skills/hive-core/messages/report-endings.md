@@ -50,7 +50,12 @@ Offer a flow's command only when the next step needs that flow's procedure: an i
 
 Only the user's reply to this block, or a flow command they type, starts the next flow; a reply to a question or the acceptance of a proposal only settles or redirects the scope, except a fix the close footer's **Resolve findings now** reply or a findings round sends, and the [same-turn continuations](#same-turn-continuations). Keep the question tool for decisions inside a flow: scope, design, delivery and review, validation and findings.
 
-When the block leads from an approved plan to its build in the same session, or starts another work item after a close, add compacting first as one of its replies: the host's compaction command followed, where the host accepts instructions, by what to keep (the plan file or plan summary, the approved criteria and delivery answers, or the files and decisions the next work reuses). Offer it for that transition only, never for an estimated share of the context window, which the model cannot see. After it, end again with the same block; it is not one «during work» of the [checkpoint](../plan/checkpoint.md).
+Add compacting first as one of the block's replies in two cases:
+
+- the block leads from an approved plan to its build in the same session;
+- the block starts another work item after a close.
+
+The reply is the host's compaction command followed, where the host accepts instructions, by what to keep (the plan file or plan summary, the approved criteria and delivery answers, or the files and decisions the next work reuses). Offer it for those transitions only, never for an estimated share of the context window, which the model cannot see. After it, end again with the same block; it is not a compaction during work, which [checkpoint](../plan/checkpoint.md) covers.
 
 ## The close footer
 

@@ -1,4 +1,4 @@
-# Diagram SVG construction — skin, primitives, connector rules, accessibility
+# Diagram SVG construction: skin, primitives, connector rules, accessibility
 
 ## When to read
 
@@ -8,12 +8,12 @@ Read before writing or changing SVG markup in a report: the CSS-class skin (§3)
 > (v2.3.2, MIT) and re-skinned onto the create-report baseline tokens (`baseline.html`). It covers
 > static inline SVG only: no Mermaid/draw.io import, animation, or PNG/SVG export.
 
-## 3. Skin — color lives in CSS classes, never in attributes
+## 3. Skin: color lives in CSS classes, never in attributes
 
 A color in an SVG presentation attribute cannot follow the report's theme toggle or invert for print: the diagram renders as a white slab in a dark page. Put every color on a class defined in the report's `<style>`, where `var()` resolves; geometry (`x`, `width`, `rx`, a `stroke-dasharray` used for meaning) stays on the element.
 
 ```svg
-<rect class="d-node" x="20" y="62" width="170" height="66" rx="8"/>   <!-- yes -->
+<rect class="d-node" x="20" y="64" width="160" height="64" rx="8"/>   <!-- yes -->
 <rect fill="#fffdf8" stroke="#1b1916" .../>                          <!-- never -->
 ```
 
@@ -56,7 +56,7 @@ The scroll container must be an inner element: a `.framed` that also carries `ov
 
 `.diagram svg` keeps `min-width:640px` and scrolls inside `.scroll-x`, so the page never scrolls horizontally. Background: a single `<rect class="d-bg" width="100%" height="100%"/>`, no dot patterns.
 
-### Arrow markers — one marker, `context-stroke`
+### Arrow markers: one marker, `context-stroke`
 
 One marker serves every color, so arrowheads follow the theme:
 
@@ -69,18 +69,18 @@ One marker serves every color, so arrowheads follow the theme:
 
 Default arrows `d-arrow`; `d-arrow-accent` for the 1–2 headline flows; `stroke-dasharray="5,4"` and a lighter weight for optional, passive, return or async. **Draw arrows before nodes**: bg → zones → arrows → nodes.
 
-### Node box — full pattern
+### Node box: full pattern
 
 ```svg
-<!-- 1. Mask, ONLY where the node sits on top of a connector -->
+<!-- 1. Mask, only where the node sits on top of a connector -->
 <rect class="d-mask" x="X" y="Y" width="W" height="H" rx="8"/>
 <!-- 2. The node itself (d-focal for the 1-2 focal ones) -->
 <rect class="d-node" x="X" y="Y" width="W" height="H" rx="8"/>
-<!-- 3. Type tag STRADDLING the top edge, on its own mask (rx=2, NOT a pill) -->
-<rect class="d-mask" x="X+5" y="Y-6" width="34" height="12"/>
-<rect class="d-tag ink" x="X+8" y="Y-6" width="28" height="12" rx="2"/>
-<text class="d-tagtext ink" x="X+22" y="Y+3" text-anchor="middle">API</text>
-<!-- 4-5. Name + sublabel, optically centred on the WHOLE box -->
+<!-- 3. Type tag straddling the top edge, on its own mask (rx=2, not a pill) -->
+<rect class="d-mask" x="X+4" y="Y-6" width="32" height="12"/>
+<rect class="d-tag ink" x="X+8" y="Y-6" width="24" height="12" rx="2"/>
+<text class="d-tagtext ink" x="X+20" y="Y+3" text-anchor="middle">API</text>
+<!-- 4-5. Name + sublabel, optically centred on the whole box -->
 <text class="d-label" x="CX" y="CY-2" text-anchor="middle">Node Name</text>
 <text class="d-sub"   x="CX" y="CY+13" text-anchor="middle">tech:port</text>
 ```
@@ -107,7 +107,7 @@ Verify with the §9 checklist in the diagram grammar before shipping.
 
 2. **Label-to-connector margin: 6–10px visible gap.** The mask stops bleed-through and the gap keeps the connector traceable; a label that hides its own arrow is a hard fail.
 
-3. **No overlapping connectors.** Two connectors never share a stroke path. Crossings get a hop on the LESS important arrow, never both; parallel runs stay ≥12px apart. If connectors keep wanting to stack, the layout is over budget.
+3. **No overlapping connectors.** Two connectors never share a stroke path. Crossings get a hop on the arrow that is not `d-arrow-accent` (between two of the same class, the one drawn later), never both; parallel runs stay ≥12px apart. If connectors keep wanting to stack, the layout is over budget.
 
    ```svg
    <!-- horizontal hop over a vertical crossing at x=cx, line at y -->
@@ -127,7 +127,7 @@ Dashed paths follow the same routing, port and bridge rules; when a dashed and a
 ## 8. Accessible SVG contract
 
 1. `<svg>` carries `role="img"` and `aria-labelledby` naming its `<title>` and `<desc>`.
-2. `<title>` is the FIRST child of `<svg>`, before `<defs>`; both `<title>` and `<desc>` are filled.
+2. `<title>` is the first child of `<svg>`, before `<defs>`; both `<title>` and `<desc>` are filled.
 3. IDs are prefixed per diagram (`<slug>-title` / `<slug>-desc`), since bare IDs collide when a report embeds two diagrams.
 4. `<title>` is the figure's short name (≤60 chars); `<desc>` is one sentence describing the content, not the geometry.
 5. Purely decorative SVG gets `aria-hidden="true"` instead.

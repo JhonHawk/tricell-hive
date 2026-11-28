@@ -17,6 +17,14 @@ raise the minor or the patch version.
   numbering and direction (below the existing sections when they stack in a
   column), instead of on a new page named after the work. A new page, named
   after the app, appears only when the file has none for that app.
+- A writing audit of the skills and references fixes the text that contradicted
+  itself or its source. One rule now says where saved browser sign-in states
+  live, in the secret location of the checkout the session works in or, for
+  work across repositories, of the declared workspace. Three citations point
+  at a section or step that exists. The 4 px grid rule of the diagram
+  references and its examples agree. Long sentences that hid a list become
+  lists, and soft words that decided an action, such as "relevant", name what
+  they cover. No rule, condition or exception changes.
 
 ### Added
 
