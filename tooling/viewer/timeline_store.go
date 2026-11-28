@@ -219,6 +219,7 @@ func (s *Store) timelineDurableWrite(path string, raw []byte) error {
 }
 func (s *Store) timelineLoad() error {
 	s.timeline = map[string]*timelineRecord{}
+	s.timelineConflicts = nil
 	if info, err := os.Lstat(s.timelineDir()); err == nil && !info.IsDir() {
 		return timelineFailure("invalid_storage", 500)
 	}
@@ -346,14 +347,27 @@ func (s *Store) timelineLoad() error {
 		for _, p := range r.Session.PendingJoinRequests {
 			sources = append(sources, p.Source)
 		}
+		var conflict *TimelineIdentityConflict
 		for _, source := range sources {
 			key, err := s.timelineRestoredProject(r, source)
+			var failure *TimelineError
+			if errors.As(err, &failure) && failure.Code == "project_identity_changed" {
+				// The repository moved, not the store: keep the work and its key,
+				// and keep checking its other sources and blobs.
+				if conflict == nil {
+					conflict = &TimelineIdentityConflict{ViewerSessionID: r.ID, Title: r.Session.Title, Root: source.ProjectRoot, StoredKey: r.ProjectKey, CurrentKey: s.timelineCurrentKey(source)}
+				}
+				continue
+			}
 			if err != nil {
 				return err
 			}
 			if err = ValidateTimelineResolvedProject(*r.Session, source, key); err != nil {
 				return err
 			}
+		}
+		if conflict != nil {
+			s.timelineConflicts = append(s.timelineConflicts, *conflict)
 		}
 		// A durable pending delete may already have removed some blobs.
 		if r.DeletePending {
@@ -370,8 +384,30 @@ func (s *Store) timelineLoad() error {
 			}
 		}
 	}
+	sort.Slice(s.timelineConflicts, func(i, j int) bool {
+		return s.timelineConflicts[i].ViewerSessionID < s.timelineConflicts[j].ViewerSessionID
+	})
 	s.timelinePublish()
 	return nil
+}
+
+// timelineCurrentKey is the key a source's root resolves to on its own, without
+// the stored works that bind it: its remote, or its path. It is empty when the
+// root cannot be located.
+func (s *Store) timelineCurrentKey(source TimelineSource) string {
+	registry, err := readRegistry(s.vdir)
+	if err != nil {
+		return ""
+	}
+	c, err := s.timelineLocate(registry, source.ProjectRoot)
+	if err != nil {
+		return ""
+	}
+	key, err := timelineProjectKey(c.root, "", c.remote)
+	if err != nil {
+		return ""
+	}
+	return key
 }
 
 // timelineRestoredProject is load-only: an unavailable original path cannot
@@ -437,6 +473,24 @@ func (s *Store) timelineRestoredProject(record *timelineRecord, source TimelineS
 		return "", timelineFailure("project_identity_unavailable", 409)
 	}
 	return record.ProjectKey, nil
+}
+
+// TimelineIdentityConflict is a work loaded with a stored project key that the
+// root it was published from no longer resolves to, such as after that
+// repository's origin moved to another remote.
+type TimelineIdentityConflict struct {
+	ViewerSessionID string
+	Title           string
+	Root            string
+	StoredKey       string
+	CurrentKey      string
+}
+
+// TimelineIdentityConflicts lists the works the last load isolated.
+func (s *Store) TimelineIdentityConflicts() []TimelineIdentityConflict {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]TimelineIdentityConflict(nil), s.timelineConflicts...)
 }
 
 func (s *Store) timelineReconcile() error {

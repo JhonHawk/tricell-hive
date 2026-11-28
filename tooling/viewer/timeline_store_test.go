@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -579,6 +580,69 @@ func TestTimelineRuntimeWorkspaceBecomesCoordinatorRepository(t *testing.T) {
 	remote = ""
 	_, err = restarted.TimelineCreate(other)
 	requireTimelineCode(t, err, "project_identity_changed")
+}
+
+// A work whose root now resolves another remote than the one it was bound to is
+// loaded with its stored key and listed as a conflict, instead of stopping the
+// load of every other work. New works from that root are still refused.
+func TestTimelineRuntimeOpenIsolatesAWorkWhoseRemoteChanged(t *testing.T) {
+	s, request := newTimelineFixture(t)
+	remote := "https://github.example/team/a.git"
+	s.remote = func(string) (string, error) { return remote, nil }
+	moved := createTimeline(t, s, request)
+	other := filepath.Join(t.TempDir(), "other")
+	if err := os.MkdirAll(filepath.Join(other, ".git"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	state := filepath.Dir(s.Dir())
+	if _, err := RegisterRepository(state, other); err != nil {
+		t.Fatal(err)
+	}
+	second := request
+	second.Source.ProjectRoot, second.OperationID = other, "second"
+	s.remote = func(root string) (string, error) {
+		if root == other || strings.HasSuffix(root, "/other") {
+			return "https://github.example/team/other.git", nil
+		}
+		return remote, nil
+	}
+	kept := createTimeline(t, s, second)
+	remote = "https://github.example/team/b.git"
+	before := stateManifest(t, state)
+	reopened, err := Open(Options{StateDir: state, GitRemote: s.remote})
+	if err != nil {
+		t.Fatal("one work with a changed remote stopped the load:", err)
+	}
+	for id, key := range map[string]string{moved.ViewerSessionID: "github.example/team/a", kept.ViewerSessionID: "github.example/team/other"} {
+		if v, err := reopened.TimelineGet(id); err != nil || v.ProjectKey != key {
+			t.Fatalf("work %s: key %q, want %q: %v", id, v.ProjectKey, key, err)
+		}
+	}
+	conflicts := reopened.TimelineIdentityConflicts()
+	want := []TimelineIdentityConflict{{ViewerSessionID: moved.ViewerSessionID, Title: moved.Title, Root: request.Source.ProjectRoot, StoredKey: "github.example/team/a", CurrentKey: "github.example/team/b"}}
+	if !reflect.DeepEqual(conflicts, want) {
+		t.Fatalf("conflicts %+v, want %+v", conflicts, want)
+	}
+	if !reflect.DeepEqual(before, stateManifest(t, state)) {
+		t.Fatal("isolating the conflict wrote state")
+	}
+	fresh := request
+	fresh.Source.NativeSessionID, fresh.OperationID = "fresh-native", "fresh"
+	_, err = reopened.TimelineCreate(fresh)
+	requireTimelineCode(t, err, "project_identity_changed")
+	actor := timelineTestActor(reopened, moved.ViewerSessionID)
+	if _, err = reopened.TimelineAddDocument(moved.ViewerSessionID, TimelineDocumentMetadata{Actor: actor, SchemaVersion: 3, OperationID: "doc", MediaType: "text/markdown"}, []byte("# Evidence\n")); err != nil {
+		t.Fatal(err)
+	}
+	blobs, err := filepath.Glob(filepath.Join(reopened.timelineDir(), moved.ViewerSessionID, "documents", "*"))
+	if err != nil || len(blobs) != 1 {
+		t.Fatal("document blob not found", blobs, err)
+	}
+	if err = os.WriteFile(blobs[0], []byte("tampered"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, err = Open(Options{StateDir: state, GitRemote: s.remote})
+	requireTimelineCode(t, err, "corrupt_artifact")
 }
 
 func TestTimelineRuntimeDirectoryCreationSyncRetries(t *testing.T) {

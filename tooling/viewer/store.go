@@ -68,6 +68,9 @@ type Store struct {
 	timelineIndex     []TimelineAPIIndexEntry
 	timelineOwned     map[string]bool
 	timelineUncertain bool
+	// timelineConflicts are the works the last load kept with a stored project
+	// key their root no longer resolves to.
+	timelineConflicts []TimelineIdentityConflict
 	timelineFault     func(phase, path string) error
 }
 
