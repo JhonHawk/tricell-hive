@@ -18,3 +18,12 @@ func TestEveryRegisteredEventHasAnEnglishStatusMessageNamingHive(t *testing.T) {
 		t.Fatalf("status messages = %v", f.StatusMessages)
 	}
 }
+
+// The /hooks screen tells the user that SessionStart also gives the model
+// instructions, since that is what the user approves.
+func TestSessionStartStatusMessageNamesTheDeveloperContext(t *testing.T) {
+	f := SessionEventsFile(target.Config{Scope: "user", Home: t.TempDir(), CodexHome: t.TempDir()})
+	if m := f.StatusMessages["SessionStart"]; !strings.Contains(m, "developer context") {
+		t.Fatalf("SessionStart statusMessage = %q", m)
+	}
+}
