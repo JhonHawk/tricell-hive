@@ -8,13 +8,13 @@ Every node this work creates on a page sits inside a section this work created: 
 
 ## Which sections
 
-Group what the work creates in these sections, left to right in this order:
+Group what the work creates in these sections, in this order along the line [Where sections go](#where-sections-go) sets:
 
 1. **Assets:** the components and other pieces this work defines in the file, the ones its record lists as `candidate:`.
 2. **Moodboard:** the reference material the work brings, such as captures of other products or of the screen it replaces.
 3. **One section per flow:** the screens a user goes through to complete one task, in one app; screens whose app shell differs, such as a mobile app and a web portal, are never the same flow. A work with one screen has one flow section.
 
-Create a section when its first node is placed, never an empty one. A section created after the others, such as Assets when its first piece is defined after the review, goes at the end of the row and takes the next number; move or renumber no other for it.
+Create a section when its first node is placed, never an empty one. A section created after the others, such as Assets when its first piece is defined after the review, goes at the end of the line and takes the next number; move or renumber no other for it.
 
 A grouping the user asked for, in the request or this conversation, replaces this list (the other rules here still apply; a node it gives no place, such as a piece this work defines, goes in its section of this list). Before the first drawing, say in one line which sections you expect to create, and draw without waiting. When a later reply changes the grouping, regroup what is drawn: move this work's nodes, rename and renumber its sections, rewrite their record lines. When the stage runs again for a work whose record lists sections, reuse them and create only a section the record lacks.
 
@@ -31,7 +31,12 @@ Name each section `NN · <what it holds>`, such as `03 · Check-in flow`: a two-
 
 ## Where sections go
 
-Place this work's sections in one row with tops aligned, 200 px apart. On an empty page the first starts at x 0, y 0; otherwise the row starts 200 px right of the page's existing content, at that content's top. After any node is added, moved or resized, in this work's sections or beside them (such as a card beside an existing frame), move this work's sections right until each is 200 px from the section before it and at least 200 px from every other node. A section never overlaps another node.
+Place this work's sections in one line, 200 px apart, in the direction the page's numbered sections already run:
+
+- **A column,** when the page's last two numbered sections share their left edge: the first of this work's sections goes 200 px below the page's lowest node, at that left edge, and each next one below it, left edges aligned.
+- **A row,** otherwise, tops aligned: on an empty page the first starts at x 0, y 0; on any other page the row starts 200 px right of the page's existing content, at that content's top.
+
+After any node is added, moved or resized, in this work's sections or beside them (such as a card beside an existing frame), move this work's sections along their line, down in a column and right in a row, until each is 200 px from the section before it and at least 200 px from every other node. A section never overlaps another node.
 
 ## What this work did not create
 
