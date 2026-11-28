@@ -26,7 +26,7 @@ When the user asks to keep or share the report, or it exceeds one screen, offer 
 | Variant | Parts | Adds |
 | --- | --- | --- |
 | Close at the completion point (merge done) | every part with content | in Next, the base CI still running, as [merge gate](../git/merge-gate.md) sets |
-| Close pending | Integrated, Resolved, Try it, Omitted, Findings and Next; its first line is not a bold «Close» | its later row's «Adds»; in Next, the steps that wait, the branch, worktree and processes left and the close command |
+| Close pending | Integrated, Resolved, Try it, Omitted, Findings and Next, first line not a bold «Close» | the «Adds» of its later close's row; in Next, what waits, the branch, worktree and processes left and the close command |
 | Pull request left open in `ready` or waiting on a reviewer | every part | in Integrated, the head commit, the base commit its current-base check passed on and the CI result; in Next, the pending merge and on whom |
 | Deployment (a cleanup close that `flow-deploy` calls) | every part | the run named in step 1 of `flow-deploy`; per environment the identity served, the health and the functional acceptance, each as met, failed, blocked or "not run"; the triggers decided; the CI failures from before that step 5 of `flow-deploy` let pass; each ticket that stayed out of its `Completion` state, or moved without a walk, as [ticket state](../tracker/ticket-state.md) sets |
 | `hold` | what is pending, the defect's proof, Try it and Principles | none |
