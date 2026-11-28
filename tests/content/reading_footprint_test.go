@@ -266,7 +266,12 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 				// project's ## Skills lines to child-brief and reviewer-brief; the user
 				// accepted that growth on 2026-11-21 (D6 A), on development at 867f5463.
 				const skillRegistryAllowance = 353
-				allowance := planReviewAllowance + reportingFamilyAllowance + reuseSoundBaseAllowance + skillRegistryAllowance
+				// The change close-on-demand added the Close pending row to close-modes
+				// and close-report and pointed report-endings and flow-close at it;
+				// the user accepted that growth on 2026-11-28
+				// (D12 A), on feat/close-on-demand from development at 0daa08be.
+				const closeOnDemandAllowance = 1098
+				allowance := planReviewAllowance + reportingFamilyAllowance + reuseSoundBaseAllowance + skillRegistryAllowance + closeOnDemandAllowance
 				if like >= declared.bytes+allowance {
 					t.Errorf("plan-build-required union without the moments the baseline did not read is %d B, not below the baseline %d B plus the %d B allowance", like, declared.bytes, allowance)
 				}
