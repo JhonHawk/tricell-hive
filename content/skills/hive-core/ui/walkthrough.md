@@ -8,10 +8,19 @@ For a walkthrough, serve the candidate locally, as [Show it in the host's pane](
 
 ## Show it in the host's pane
 
-This section applies at a stop where the user reviews a served app, such as a build's first view, a walkthrough or a validation request with its Try it block, when this session's tools include a browser pane the user sees inside the host app, such as a desktop app's built-in browser. A terminal session has no such pane, and the stop gives its URLs as links.
+This section applies at a stop where the user reviews a served app, such as a build's first view, a walkthrough or a validation request with its Try it block, when this session's tools include a browser pane the user sees inside the host app, such as a desktop app's built-in browser. A terminal session has no such pane: the stop gives its URLs as links and, for an app that needs sign-in, the window of [Sign in for the user](#sign-in-for-the-user).
 
 - Serve the candidate through the host's own preview mechanism when it has one, such as a launch configuration its preview tool starts, instead of a shell command, keeping the build or preview command the calling flow sets. The Try it block gives the URL and port the served instance reports, not a port `HIVE.local.md` records, since the host may pick a free port each run; a port the host's preview picks is not a fact to record there.
-- Open each URL the stop names in that pane, visible to the user when the host keeps it in the background by default. When the host reaches the pane only through its own browser subagent, open it through that subagent: it is the host's access to the pane, not a Hive child, so it does not count toward [delegation](../delegation/delegation.md).
+- Open each URL the stop names in that pane, visible to the user when the host keeps it in the background by default, and signed in as [Sign in for the user](#sign-in-for-the-user) sets. When the host reaches the pane only through its own browser subagent, open it through that subagent: it is the host's access to the pane, not a Hive child, so it does not count toward [delegation](../delegation/delegation.md).
 - When opening fails, give the URLs as links and say why.
 
 Automated checks, captures and children keep the tool [Browser tool](ui-verification.md#browser-tool) sets. [Close cleanup](../close/close-cleanup.md) sets what happens to a server the host's preview started.
+
+## Sign in for the user
+
+This section applies at a stop where the user reviews a served web app, such as a build's first view, a walkthrough or a validation request with its Try it block, when the Try it start shows a sign-in screen and the account the block names has a source for each factor in its index row, as [test accounts](../local/test-accounts.md) sets. Without such an account, the block gives the row and the user signs in.
+
+- Before asking, sign in with that account as [Browser tool](ui-verification.md#browser-tool) sets, so its saved state is current.
+- With the host's pane: when the account's password is a public local value the project documents, such as a seed password its `README.md` gives, sign in inside the pane through the host's browser tool, typing the second factor's code that [test accounts](../local/test-accounts.md) reads, and leave the pane on the Try it start; a real password never goes into a tool's input. Otherwise open the pane at its sign-in screen and offer the window below.
+- In a terminal session, or with the pane left at its sign-in screen: offer `Open signed in` as [open the viewer](viewer-open.md) sets for the stop's options, only when the host's native session ID can be read as [host session identity](viewer/host-session-identity.md) names its variable; without it, the block gives the row. When the user picks it, open `agent-browser --headed --session tryit-<repo>-<id> --state <file> open <Try it start>`, where `<repo>` is the repository's folder name reduced to letters, digits, `-` and `_`, and `<id>` is the session ID's first 12 characters, so no other session's window shares the name.
+- The window is the user's: drive it only to bring it to a later stop's start, never for checks, captures or children, which keep their own sessions. When its browser is gone, because the user closed it, the next command opens it again with the same state. [Close cleanup](../close/close-cleanup.md) closes it.
