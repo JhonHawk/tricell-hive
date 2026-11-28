@@ -1,6 +1,6 @@
 # Rule cards
 
-Read at step 5 of [create-design](../SKILL.md), once the first review is reconciled, to draw the rule cards; at its step 7, when the user answers a rule; and from any later flow when a rule a card shows changes or a decision contradicts an approved frame. [Business rules](../../hive-core/business/business-rules.md) defines a business rule; [business record](../../hive-core/business/business-record.md) holds the line that records it and its statuses.
+Read at step 5 of [create-design](../SKILL.md), once the first review is reconciled, to draw the rule cards; at its step 7, when the user answers a rule; in the [mobile phase](approval.md#mobile-phase), to add the rows that hold only on mobile; and from any later flow when a rule a card shows changes or a decision contradicts an approved frame. [Business rules](../../hive-core/business/business-rules.md) defines a business rule; [business record](../../hive-core/business/business-record.md) holds the line that records it and its statuses.
 
 A rule card is an annotation beside a frame that lists the business rules shaping that screen which the frame does not say by itself, so a reader of the design file finds them without the ticket; it is not part of the interface.
 
@@ -13,16 +13,16 @@ For each frame the work drew, take:
 
 Keep a rule only when its condition or its consequence is not written in the frame's visible text: leave out a rule that a label, a helper text or a message of the frame already says in full. Add each stated rule you keep to the record only when that screen has no line for it, as `rule: <the rule> · screen <name> · stated: <source> · found by drawer`.
 
-A frame with no rule to keep gets no card. A `scope` rule has stopped its screens, so it has no frame and no card. The 440 px frame of a web screen served on mobile shares its screen's card: draw no second one. A screen drawn with alternatives gets one card per alternative.
+A frame with no rule to keep gets no card. A `scope` rule has stopped its screens, so it has no frame and no card. The 440 px frames of a web screen served on mobile share their screen's card: draw no second one. A rule that holds only on mobile, or a difference of behavior only the mobile frames show, goes on that card in a row whose origin is «on mobile», added when the [mobile phase](approval.md#mobile-phase) draws those frames; a frame with no card gets one then. A screen drawn with alternatives gets one card per alternative.
 
 ## Draw the cards
 
 Draw them after the first review's findings are fixed and its unsettled rules recorded, never before: the first reviewer must list the unsettled rules without seeing yours. For several screens, that review is the one of the whole set, not the earlier review of the first screen alone (which gets no cards and no follow-up).
 
-- Use the annotation component of the library [design library](design-library.md) binds when it holds one; otherwise define one card component in the file, on the tool's automatic layout and bound to the file's variables, as a piece of this work with its `candidate:` line, and place one instance per frame.
-- Place each card outside its frame's bounds, to the right, aligned to the frame's top and 40 px away, so an export of the frame leaves it out. [Canvas sections](sections.md) sets the section that holds it. Space the frames this work draws so a card fits between two of them. Never move a frame this work did not create to make room: ask it as a decision first.
+- Use the annotation component of the library [design library](design-library.md) binds when it holds one; otherwise define one card component in the file, 400 px wide, on the tool's automatic layout and bound to the file's variables, as a piece of this work with its `candidate:` line, and place one instance per frame.
+- Place each card outside its frame's bounds, to the right, aligned to the frame's top and 40 px away, so an export of the frame leaves it out. [Canvas sections](sections.md) sets the section that holds it and the slot it keeps between two frames. Never move a frame this work did not create to make room: ask it as a decision first.
 - Open the card with a heading that says it is a design annotation and not interface, in the session language.
-- Write one row per rule: its origin, then the rule in one or two sentences of plain words, never a decision ID alone. The origin is one of four, named in the session language: the specification, for a `stated` rule, with the source's own identifier when it has one; a decision, for an `approved` rule, with its date; an assumption; or still to decide, for a `proposed` rule.
+- Write one row per rule: a line with its origin, then the rule below it in one or two sentences of plain words, never a decision ID alone, with a blank line between rows. The origin is one of these, named in the session language, such as `Specification · R559, R610` or `Decision · 28 Nov 2026`: the specification, for a `stated` rule, followed by the source's own identifiers when it has them; a decision, for an `approved` rule, followed by its date; an assumption; still to decide, for a `proposed` rule; cancelled, followed by the date and the source that cancelled it, for a row «After the design stage» marks; or on mobile, for a rule that holds only on the 440 px frames.
 - Put on a card no row that repeats the frame's text and no rule of another screen.
 - Add one `card: <screen> · <node>` line per card to the example's record, where those lines stay.
 
@@ -36,7 +36,7 @@ At step 7, in the same turn the record's line becomes `approved`, rewrite that r
 
 When a later flow records a change to a rule a card shows, as [business rules](../../hive-core/business/business-rules.md) sets, the main thread also does one of these in the same turn:
 
-- With a connection that can write to that Figma file, correct the card: mark the earlier row as cancelled, with the date and the reason, and add a row for the rule that replaces it; never delete the earlier row. Change only the card nodes the example's record lists in its `card:` lines, which the global guidance's «Scope and authorization» authorizes without a question. Never change a frame or any other node from outside the design stage.
+- With a connection that can write to that Figma file, correct the card: mark the earlier row as cancelled, its origin line naming the date and the source that cancelled it, and add a row for the rule that replaces it; never delete the earlier row. Change only the card nodes the example's record lists in its `card:` lines, which the global guidance's «Scope and authorization» authorizes without a question. Never change a frame or any other node from outside the design stage.
 - Without that connection, without those `card:` lines where the flow runs, or when the write fails, add `card stale: <screen> · <rule>` to the work's rule record.
 
 When a decision contradicts what an approved frame itself shows (a region, an action, a state or a text), add `frame stale: <node> · <rule>` to the work's rule record and say so in that turn's message. The build follows the decision, and no flow redraws the frame outside the design stage. The close names each `card stale:` and `frame stale:` line in its final report, as left open.

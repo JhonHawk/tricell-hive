@@ -1,6 +1,6 @@
 # Example record and review
 
-Read at step 5 of [create-design](../SKILL.md) as soon as the frames are drawn, before the review and before asking anything: it sets the rules to list, the record to write and the review that follows.
+Read at step 5 of [create-design](../SKILL.md) as soon as the frames are drawn, before the review and before asking anything, and in the [mobile phase](approval.md#mobile-phase) when its frames are drawn: it sets the rules to list, the record to write and the review that follows.
 
 ## Rules the frames show
 
@@ -14,6 +14,7 @@ Write in `examples.md`, created with the inventory in the work's folder under `_
 - the path of each frame's local image in that folder's `images/`;
 - one status line per screen of the work, `drawn, under review` or `stopped by <the rule>`;
 - apart from those, one `rule:` line per rule, `proposed`, `assumption` or `scope`, found by the drawer or the reviewer;
+- in the mobile phase, one status line per mobile frame, `mobile · <screen>`, followed by the same statuses (`drawn, under review`, then `drawn, pending the user's approval`, then `approved <date>`); a rule the mobile frames show is recorded as the drawer's rules are;
 - one `candidate: <piece> · <node>` line per piece defined outside the bound library, which step 6's message lists.
 
 The location and the nodes are the record: the image is a local copy, read again from them where it is missing.

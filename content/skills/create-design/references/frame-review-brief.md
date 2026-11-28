@@ -1,6 +1,6 @@
 # Frame review brief
 
-Read when briefing the `hive-review-ux` child that reviews frames drawn in a design file, at the review of [example record](example-record.md) or its one follow-up review in [rule cards](rule-cards.md). The rest of [reviewer brief](../../hive-core/delegation/reviewer-brief.md) still applies.
+Read when briefing the `hive-review-ux` child that reviews frames drawn in a design file, at the review of [example record](example-record.md), its one follow-up review in [rule cards](rule-cards.md), or the review of the [mobile phase](approval.md#mobile-phase). The rest of [reviewer brief](../../hive-core/delegation/reviewer-brief.md) still applies.
 
 Frames have no states to reach, so the brief gives:
 
@@ -12,3 +12,5 @@ Frames have no states to reach, so the brief gives:
 - the request and research's decisions, as requirements.
 
 It leaves out the drawer's list of proposed business rules, so the reviewer finds the rules nothing settles on its own. Only the brief of the one follow-up review also gives each rule card's node with its frame's and the record's `rule:` lines of those screens, as [rule cards](rule-cards.md) sets.
+
+In the mobile phase, the brief also gives the approved web frame of each mobile frame, which the mobile frame must follow, the node of the twin section, and the cards with their «on mobile» rows.
