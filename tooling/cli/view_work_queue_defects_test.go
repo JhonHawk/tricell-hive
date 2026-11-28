@@ -410,7 +410,8 @@ func commandLine(t *testing.T, lines []string) string {
 }
 
 func TestWorkContinuationNamesTheCommandForEachIntent(t *testing.T) {
-	hostile := "it's $(touch /tmp/hive-pwned) `id`\nsecond line"
+	sentinel := filepath.Join(t.TempDir(), "pwned")
+	hostile := "it's $(touch " + sentinel + ") `id`\nsecond line"
 	project := "/tmp/a project/it's"
 	source := viewer.TimelineSource{ProjectRoot: project, Host: "codex", NativeSessionID: "owner"}
 	openContext := func(change string) json.RawMessage {
@@ -420,6 +421,7 @@ func TestWorkContinuationNamesTheCommandForEachIntent(t *testing.T) {
 	}
 	publication := mustWorkJSON(workPublicationIntent{Command: viewWorkCommand{Action: "publish", Host: "codex", NativeSessionID: "owner", Project: project, Change: project + "/change dir", Key: "K-2", Title: hostile, Summary: hostile, Stage: "verify", Reason: hostile, DocumentKey: "report", Status: "draft", Documents: []string{"report.md", "notes it's.md"}, ExplicitDocuments: true}})
 	newline := viewer.TimelineSource{ProjectRoot: "/tmp/a\n  hive view work fake", Host: "codex", NativeSessionID: "owner"}
+	separator := viewer.TimelineSource{ProjectRoot: "/tmp/a\u2028  hive view work fake\u202e", Host: "codex", NativeSessionID: "owner"}
 	work := strings.Repeat("a", 64)
 	frozen := []viewWorkStep{{Method: "POST", Path: "/x", Attempted: true}}
 	rejected := []viewWorkStep{{Method: "POST", Path: "/x", Attempted: true, Rejection: "version_conflict"}}
@@ -435,19 +437,21 @@ func TestWorkContinuationNamesTheCommandForEachIntent(t *testing.T) {
 		foreign bool
 	}{
 		{"open with change", viewWorkIntent{ID: "p1", Action: "open", State: "needs_reconciliation", Source: source, Context: openContext(project + "/change dir"), Steps: frozen}, owner,
-			append(append([]string{"hive", "view", "work", "open"}, identity...), "--project", project, "--change", project+"/change dir", "--key", "K-1", "--title", "it's $(touch /tmp/hive-pwned) `id` second line", "--summary", "it's $(touch /tmp/hive-pwned) `id` second line"), []string{"cannot be discarded"}, false},
+			append(append([]string{"hive", "view", "work", "open"}, identity...), "--project", project, "--change", project+"/change dir", "--key", "K-1", "--title", "Resume", "--summary", "Resume"), []string{"cannot be discarded"}, false},
 		{"open from capture", viewWorkIntent{ID: "p2", Action: "open", State: "needs_reconciliation", Source: source, Context: openContext(""), Steps: frozen}, owner,
-			append(append([]string{"hive", "view", "work", "open"}, identity...), "--project", project, "--key", "K-1", "--title", "it's $(touch /tmp/hive-pwned) `id` second line", "--summary", "it's $(touch /tmp/hive-pwned) `id` second line"), nil, false},
+			append(append([]string{"hive", "view", "work", "open"}, identity...), "--project", project, "--key", "K-1", "--title", "Resume", "--summary", "Resume"), nil, false},
 		{"publish before its work", viewWorkIntent{ID: "p3", Action: "publish", State: "uploading", Source: source, Context: publication}, owner,
-			append(append([]string{"hive", "view", "work", "publish"}, identity...), "--project", project, "--change", project+"/change dir", "--key", "K-2", "--title", "it's $(touch /tmp/hive-pwned) `id` second line", "--summary", "it's $(touch /tmp/hive-pwned) `id` second line", "--stage", "verify", "--reason", "it's $(touch /tmp/hive-pwned) `id` second line", "--document-key", "report", "--status", "draft", "--document", "report.md", "--document", "notes it's.md", "--explicit-documents"), nil, false},
+			append(append([]string{"hive", "view", "work", "publish"}, identity...), "--project", project, "--change", project+"/change dir", "--key", "K-2", "--title", "Resume", "--summary", "Resume", "--stage", "verify", "--reason", "Resume", "--document-key", "report", "--status", "draft", "--document", "report.md", "--document", "notes it's.md", "--explicit-documents"), nil, false},
 		{"a project with a newline, not in the command", viewWorkIntent{ID: "p8", Action: "evidence", WorkID: work, State: "verifying", Source: newline, Steps: frozen}, owner,
 			append(append([]string{"hive", "view", "work", "resume"}, identity...), "--work-id", work), nil, false},
+		{"a project with a line separator in the command", viewWorkIntent{ID: "p10", Action: "open", State: "needs_reconciliation", Source: separator, Context: mustWorkJSON(viewWorkOpenContext{Binding: viewWorkBinding{Key: "K-4", Project: separator.ProjectRoot, Source: separator}}), Steps: frozen}, owner,
+			nil, []string{"control character: no command is printed"}, false},
 		{"a project with a newline in the command", viewWorkIntent{ID: "p9", Action: "open", State: "needs_reconciliation", Source: newline, Context: mustWorkJSON(viewWorkOpenContext{Binding: viewWorkBinding{Key: "K-3", Project: newline.ProjectRoot, Source: newline}}), Steps: frozen}, owner,
 			nil, []string{"control character: no command is printed"}, false},
 		{"evidence of a work", viewWorkIntent{ID: "p4", Action: "evidence", WorkID: work, State: "needs_reconciliation", Source: source, Steps: frozen}, owner,
 			append(append([]string{"hive", "view", "work", "resume"}, identity...), "--work-id", work), []string{"cannot be discarded"}, false},
 		{"rejected with a work", viewWorkIntent{ID: "p5", Action: "evidence", WorkID: work, State: "rejected_conflict", Source: source, Steps: rejected}, owner,
-			append(append([]string{"hive", "view", "work", "reconcile"}, identity...), "--work-id", work, "--pending", "p5", "--action", "archive-rejected", "--reason", "<why it is archived>"), nil, false},
+			append(append([]string{"hive", "view", "work", "reconcile"}, identity...), "--work-id", work, "--pending", "p5", "--action", "archive-rejected"), []string{"add --reason TEXT to that command before running it"}, false},
 		{"rejected open", viewWorkIntent{ID: "p6", Action: "open", State: "rejected_conflict", Source: source, Context: openContext(""), Steps: rejected}, owner,
 			nil, []string{"no command continues or archives it"}, false},
 		{"another session", viewWorkIntent{ID: "p7", Action: "evidence", WorkID: work, State: "verifying", Source: source, Steps: frozen}, other,
@@ -470,8 +474,11 @@ func TestWorkContinuationNamesTheCommandForEachIntent(t *testing.T) {
 				}
 			} else if got := shellArgs(t, line); !reflect.DeepEqual(got, tc.want) {
 				t.Fatalf("command runs\n%q\nwant\n%q", got, tc.want)
-			} else if _, err := parseViewWorkCommand(got[3:], strings.NewReader("")); err != nil && !strings.Contains(err.Error(), "native identity") {
-				t.Fatalf("the printed command does not parse: %v", err)
+			} else if _, err := parseViewWorkCommand(got[3:], strings.NewReader("")); strings.Contains(strings.Join(lines, "\n"), "add --reason") != (err != nil) {
+				t.Fatalf("the printed command parses with %v; only an archive without its reason must not", err)
+			}
+			if strings.Contains(strings.Join(lines, "\n"), "touch") {
+				t.Fatalf("stored free text reached the message: %q", lines)
 			}
 			for _, note := range tc.notes {
 				if !strings.Contains(strings.Join(lines, "\n"), note) {
@@ -483,7 +490,7 @@ func TestWorkContinuationNamesTheCommandForEachIntent(t *testing.T) {
 			}
 		})
 	}
-	if _, err := os.Stat("/tmp/hive-pwned"); err == nil {
+	if _, err := os.Stat(sentinel); err == nil {
 		t.Fatal("a printed command ran the stored text")
 	}
 }

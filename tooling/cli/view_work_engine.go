@@ -118,7 +118,16 @@ func openViewWorkEngineQueueing(c viewWorkCommand, queueing bool) (*viewWorkEngi
 	if err != nil {
 		return nil, err
 	}
-	e := &viewWorkEngine{state: state, dir: dir, caller: c}
+	// Continuation commands name the resolved state directory, so they reach
+	// the same journal from any directory or environment.
+	caller := c
+	caller.Options.StateDir = state
+	if caller.Options.Home != "" {
+		if caller.Options.Home, err = filepath.Abs(caller.Options.Home); err != nil {
+			return nil, err
+		}
+	}
+	e := &viewWorkEngine{state: state, dir: dir, caller: caller}
 	var peek *viewWorkJournal
 	if err = withWorkJournalLock(dir, func() (err error) { peek, err = readWorkJournal(dir); return }); err != nil {
 		return nil, err
@@ -216,7 +225,7 @@ func (e *viewWorkEngine) actor(s viewer.TimelineSession, c viewWorkCommand) (vie
 func (e *viewWorkEngine) prepareIntent(action, id string, source viewer.TimelineSource, context any) (*viewWorkIntent, error) {
 	for _, i := range e.journal.Pending {
 		if i.WorkID == id && id != "" || i.Source == source && i.WorkID == "" && bytes.Equal(i.Context, mustWorkJSON(context)) {
-			return nil, &viewWorkError{Code: "pending_operation", Pending: i.ID, Next: "run hive view work resume with the original native source"}
+			return nil, &viewWorkError{Code: "pending_operation", Pending: i.ID, Next: workIntentNext(i, e.caller, "an earlier intent holds this operation; continue it")}
 		}
 	}
 	if err := e.journal.admitWorkIntent(e.caller); err != nil {
@@ -287,7 +296,11 @@ func (e *viewWorkEngine) executeStep(i *viewWorkIntent, index int) ([]byte, erro
 		if code == "" {
 			code = "outcome_unknown"
 		}
-		return nil, &viewWorkError{Code: code, Pending: i.ID, Next: "preserve inputs; continue it with:\n" + strings.Join(workContinuation(i, e.caller)[1:], "\n")}
+		lead := "preserve inputs; continue it"
+		if s.Rejection != "" {
+			lead = "rejected"
+		}
+		return nil, &viewWorkError{Code: code, Pending: i.ID, Next: workIntentNext(i, e.caller, lead)}
 	}
 	viewWorkCheckpoint("sent")
 	// Validate before recording a successful receipt. A malformed success may
@@ -296,7 +309,7 @@ func (e *viewWorkEngine) executeStep(i *viewWorkIntent, index int) ([]byte, erro
 		r, err := viewer.DecodeTimelineSessionResponse(raw)
 		var request viewer.TimelineCreateSessionRequest
 		if err != nil || json.Unmarshal(s.Body, &request) != nil || r.Session.Source != request.Source || !sameWorkKey(r.Session.WorkKey, request.WorkKey) {
-			return nil, &viewWorkError{Code: "outcome_unknown", Pending: i.ID, Next: "resume the unchanged request with:\n" + strings.Join(workContinuation(i, e.caller)[1:], "\n")}
+			return nil, &viewWorkError{Code: "outcome_unknown", Pending: i.ID, Next: workIntentNext(i, e.caller, "resume the unchanged request")}
 		}
 		r.ArtifactURLs = nil
 		r.DocumentURLs = nil
@@ -304,7 +317,7 @@ func (e *viewWorkEngine) executeStep(i *viewWorkIntent, index int) ([]byte, erro
 		i.WorkID = r.Session.ViewerSessionID
 	} else {
 		if r, err := viewer.DecodeTimelineOperationResult(raw); err != nil || r.ViewerSessionID != i.WorkID || r.OperationID != workStepOperationID(*s) {
-			return nil, &viewWorkError{Code: "outcome_unknown", Pending: i.ID, Next: "resume the unchanged request with:\n" + strings.Join(workContinuation(i, e.caller)[1:], "\n")}
+			return nil, &viewWorkError{Code: "outcome_unknown", Pending: i.ID, Next: workIntentNext(i, e.caller, "resume the unchanged request")}
 		}
 	}
 	s.Response = append([]byte(nil), raw...)
@@ -457,6 +470,17 @@ func (e *viewWorkEngine) open(c viewWorkCommand) (viewer.TimelineSession, error)
 		err = e.bind(c, s, false)
 		return s, err
 	}
+	// A pending open named by the exact paths it stored continues before the
+	// paths are resolved, so a change folder removed since still finds it.
+	for _, i := range e.journal.Pending {
+		if i.Action != "open" || string(i.Source.Host) != c.Host || i.Source.NativeSessionID != c.NativeSessionID {
+			continue
+		}
+		var original viewWorkOpenContext
+		if json.Unmarshal(i.Context, &original) == nil && original.Binding.Key == c.Key && original.Binding.Project == c.Project && original.Binding.Change == c.Change {
+			return e.completeOpen(c, i)
+		}
+	}
 	project, err := canonicalWorkDir(c.Project)
 	if err != nil {
 		return viewer.TimelineSession{}, err
@@ -573,6 +597,11 @@ func (e *viewWorkEngine) completeOpen(c viewWorkCommand, i *viewWorkIntent) (vie
 		return r.Session, workStateError("invalid_journal")
 	}
 	c.Change, c.Project = b.Change, b.Project
+	if _, err := canonicalWorkDir(c.Change); c.Change != "" && err != nil {
+		// The change folder is gone, as after its worktree's close: the work
+		// is created without a binding to it.
+		c.Change = ""
+	}
 	if err = e.bind(c, r.Session, false); err != nil {
 		return r.Session, err
 	}
@@ -634,7 +663,7 @@ func (e *viewWorkEngine) failed(c viewWorkCommand, err error) error {
 		var ve *viewWorkError
 		if errors.As(err, &ve) {
 			copied := *ve
-			copied.Next = strings.TrimSpace(copied.Next + " (" + note + ")")
+			copied.Next = strings.TrimSpace(copied.Next + "\n" + note)
 			err = &copied
 		} else {
 			err = fmt.Errorf("%w (%s)", err, note)

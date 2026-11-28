@@ -267,7 +267,10 @@ func TestWorkEngineFailedOpenNamesTheCommandThatContinuesIt(t *testing.T) {
 	engineWorkOpen(t, c)
 	git("remote", "set-url", "origin", "https://example.com/team/b.git")
 	moved := c
-	moved.Change, moved.Key, moved.Title = "", "B", "Work B: it's `moved`"
+	moved.Change, moved.Key, moved.Title = filepath.Join(c.Project, "B"), "B", "Work B: it's `moved`"
+	if err := os.Mkdir(moved.Change, 0o700); err != nil {
+		t.Fatal(err)
+	}
 	err := executeViewWork(moved, &bytes.Buffer{})
 	if err == nil || !strings.HasPrefix(err.Error(), "project_identity_changed") {
 		t.Fatalf("open after origin moved: %v", err)
@@ -278,8 +281,12 @@ func TestWorkEngineFailedOpenNamesTheCommandThatContinuesIt(t *testing.T) {
 			line = strings.TrimPrefix(l, "  ")
 		}
 	}
-	if line == "" || strings.Contains(err.Error(), "another session's") {
+	if line == "" || strings.Contains(err.Error(), "another session's") || !strings.Contains(line, "--state-dir "+f.stateDir) || !strings.Contains(line, "--change "+moved.Change) {
 		t.Fatalf("next action:\n%s", err)
+	}
+	// The change folder of the stuck open is gone, as after its worktree's close.
+	if err = os.Remove(moved.Change); err != nil {
+		t.Fatal(err)
 	}
 	git("remote", "set-url", "origin", "https://example.com/team/a.git")
 	args := shellArgs(t, line)
@@ -304,5 +311,17 @@ func TestWorkEngineFailedOpenNamesTheCommandThatContinuesIt(t *testing.T) {
 	s, err := viewTimelineHTTP(f.info(), "GET", "/api/timeline/sessions/"+r.WorkID, "", nil, viewer.TimelineMaxBody)
 	if err != nil || opens != 1 || !strings.Contains(string(s), `"title":"Work B: it's `+"`moved`"+`"`) {
 		t.Fatalf("one open for the work, with the frozen title: opens %d: %v", opens, err)
+	}
+}
+
+// The note about queued declarations a run rejected sits on its own line, so
+// the continuation command before it stays one runnable line.
+func TestWorkFailedKeepsTheContinuationCommandOnItsOwnLine(t *testing.T) {
+	e := &viewWorkEngine{dir: t.TempDir(), journal: newWorkJournal()}
+	e.report.Rejected = []viewWorkQueueRejection{{ID: "q-1", Action: "sync", Reason: "stage_terminal"}}
+	err := e.failed(viewWorkCommand{}, &viewWorkError{Code: "publisher_capacity", Next: "pending:\n  hive view work resume --work-id w"})
+	lines := strings.Split(err.Error(), "\n")
+	if len(lines) != 3 || lines[1] != "  hive view work resume --work-id w" || !strings.HasPrefix(lines[2], "queued declarations rejected: sync stage_terminal q-1") {
+		t.Fatalf("message lines %q", lines)
 	}
 }
