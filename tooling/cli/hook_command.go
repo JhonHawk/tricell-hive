@@ -28,6 +28,7 @@ import (
 	"tricell-hive/integrations/hostevent"
 	"tricell-hive/integrations/opencode"
 	"tricell-hive/integrations/pi"
+	"tricell-hive/integrations/target"
 	"tricell-hive/tooling/management"
 	"tricell-hive/tooling/viewer"
 )
@@ -198,17 +199,21 @@ func processHook(opts hookOptions, hint, event string, stdin io.Reader, deps vie
 		return
 	}
 	host := detectHookHost(hint, payload, deps.getenv)
-	options := management.Options{Scope: "user", Home: opts.home, StateDir: opts.stateDir}
-	cfg, state, err := management.NormalizeOptions(options)
-	if host == codex.HookHost && err == nil {
-		// Printed before any viewer work, so a slow viewer cannot cost the
-		// session its developer context.
-		if text := codex.DeveloperContext(event, payload, codex.SkillsDir(cfg)); text != "" {
+	if host == codex.HookHost {
+		// Printed before any viewer work, and from the home alone, so neither a
+		// slow viewer nor a state folder that cannot be resolved costs the session
+		// its developer context.
+		if text := codex.DeveloperContext(event, payload, codexSkillsDir(opts.home)); text != "" {
 			_, _ = io.WriteString(os.Stdout, text)
 		}
 	}
 	events := translateHook(host, hostevent.Input{Event: event, Payload: payload, Getenv: deps.getenv})
-	if len(events) == 0 || err != nil {
+	if len(events) == 0 {
+		return
+	}
+	options := management.Options{Scope: "user", Home: opts.home, StateDir: opts.stateDir}
+	_, state, err := management.NormalizeOptions(options)
+	if err != nil {
 		return
 	}
 	if abs, err := filepath.Abs(state); err == nil {
@@ -231,6 +236,23 @@ func processHook(opts hookOptions, hint, event string, stdin io.Reader, deps vie
 		built = append(built, buildHostEvent(ev, hostStart))
 	}
 	sendHookEvents(options, state, built, run)
+}
+
+// codexSkillsDir is the user-scope Codex skills folder under home, or under the
+// user's home when the hook got no --home, resolved as the installer resolves
+// it; "" when no home can be found.
+func codexSkillsDir(home string) string {
+	if home == "" {
+		var err error
+		if home, err = os.UserHomeDir(); err != nil {
+			return ""
+		}
+	}
+	home, err := target.Canonical(home)
+	if err != nil {
+		return ""
+	}
+	return codex.SkillsDir(target.Config{Scope: "user", Home: home})
 }
 
 // hookOccurredAt is the time the event is reported with. The viewer derives the

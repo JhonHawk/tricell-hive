@@ -544,6 +544,10 @@ func TestHookCodexPrintsTheDeveloperContextOnlyAtTheMainSessionStart(t *testing.
 	}{
 		{"main session start", home, "SessionStart", `{"session_id":"cx-1","cwd":"/w","source":"startup"}`, want},
 		{"start after a compaction", home, "SessionStart", `{"session_id":"cx-1","cwd":"/w","source":"compact"}`, want},
+		{"cleared session", home, "SessionStart", `{"session_id":"cx-1","cwd":"/w","source":"clear"}`, want},
+		{"no source", home, "SessionStart", `{"session_id":"cx-1","cwd":"/w"}`, want},
+		{"resumed session already holds it", home, "SessionStart", `{"session_id":"cx-1","cwd":"/w","source":"resume"}`, ""},
+		{"forked session already holds it", home, "SessionStart", `{"session_id":"cx-1","cwd":"/w","source":"fork"}`, ""},
 		{"subagent", home, "SessionStart", `{"session_id":"cx-1","agent_id":"ag-1","cwd":"/w"}`, ""},
 		{"other event", home, "UserPromptSubmit", `{"session_id":"cx-1","cwd":"/w"}`, ""},
 		{"no entry installed", t.TempDir(), "SessionStart", `{"session_id":"cx-1","cwd":"/w"}`, ""},
@@ -567,6 +571,21 @@ func TestHookOtherHostsIgnoreTheCodexDeveloperContext(t *testing.T) {
 	withHookHost(t, "claude", nil)
 	out, errOut, err := runHookCLI(t, `{"session_id":"cc-1","cwd":"/w"}`, "claude", "SessionStart", "--home", home, "--state-dir", t.TempDir())
 	if out != "" || errOut != "" || err != nil {
+		t.Fatalf("stdout %q, stderr %q, err %v", out, errOut, err)
+	}
+}
+
+// The entry depends on the home alone: a state folder Hive cannot resolve stops
+// the viewer work, not the developer context.
+func TestHookCodexPrintsTheDeveloperContextWhenTheStateFolderFails(t *testing.T) {
+	home, _ := codexHome(t, codexEntry)
+	notADir := filepath.Join(t.TempDir(), "file")
+	if err := os.WriteFile(notADir, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	withHookHost(t, "codex", nil)
+	out, errOut, err := runHookCLI(t, `{"session_id":"cx-1","cwd":"/w"}`, "codex", "SessionStart", "--home", home, "--state-dir", filepath.Join(notADir, "state"))
+	if !strings.Contains(out, "Follow the [questions](<") || errOut != "" || err != nil {
 		t.Fatalf("stdout %q, stderr %q, err %v", out, errOut, err)
 	}
 }

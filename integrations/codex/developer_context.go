@@ -22,11 +22,19 @@ const DeveloperContextLimit = 8000
 
 // DeveloperContext is what `hive hook codex <event>` prints for payload: the
 // entry under skillsDir with its skill: links pointing into skillsDir, for a
-// SessionStart of the main session only. A subagent's event (agent_id), any
-// other event, a missing or unreadable entry and one over the limit print
+// SessionStart of the main session that starts a history without it: a new
+// session, a cleared one or one rebuilt by a compaction, or a payload with no
+// source. A resumed or forked session already holds the entry in the history it
+// carries, so printing again would add a copy. A subagent's event (agent_id),
+// any other event, a missing or unreadable entry and one over the limit print
 // nothing.
 func DeveloperContext(event string, payload map[string]any, skillsDir string) string {
 	if hostevent.Normalize(event) != "sessionstart" || hostevent.ID(payload["agent_id"]) != "" || skillsDir == "" {
+		return ""
+	}
+	switch hostevent.Str(payload, "source") {
+	case "", "startup", "clear", "compact":
+	default:
 		return ""
 	}
 	data, err := os.ReadFile(filepath.Join(skillsDir, DeveloperContextFile))
